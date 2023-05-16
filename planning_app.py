@@ -444,29 +444,29 @@ class App:
             self.create_drop_down_values() 
             
 
-            # Create GL and Forecast Tables in Tab 1
-            self.tab_tagging = ttk.Frame(self.notebook)
-            self.notebook.add(self.tab_tagging, text=" Tag GL/Forecast Data ")
-            self.login_label = ttk.Label(self.login_frame, text="Building tab 1 for GL tagging...", background="#f0f0f0", width=min_width, anchor='center')
-            self.login_label.grid(row=3, column=0, columnspan=2, pady=2, sticky='nsew')
-            self.login_frame.update()
-            self.create_tagger_tab_tables()
+            # # Create GL and Forecast Tables in Tab 1
+            # self.tab_tagging = ttk.Frame(self.notebook)
+            # self.notebook.add(self.tab_tagging, text=" Tag GL/Forecast Data ")
+            # self.login_label = ttk.Label(self.login_frame, text="Building tab 1 for GL tagging...", background="#f0f0f0", width=min_width, anchor='center')
+            # self.login_label.grid(row=3, column=0, columnspan=2, pady=2, sticky='nsew')
+            # self.login_frame.update()
+            # self.create_tagger_tab_tables()
             
-            # Tab #2
-            self.tab_auto_tagger = ttk.Frame(self.notebook)
-            self.notebook.add(self.tab_auto_tagger, text=" Auto Tagger ")
-            self.login_label = ttk.Label(self.login_frame, text="Building tab 2 for auto tagger...", background="#f0f0f0", width=min_width, anchor='center')
-            self.login_label.grid(row=3, column=0, columnspan=2, pady=2, sticky='nsew')
-            self.login_frame.update()
-            self.create_auto_tagger_table()
+            # # Tab #2
+            # self.tab_auto_tagger = ttk.Frame(self.notebook)
+            # self.notebook.add(self.tab_auto_tagger, text=" Auto Tagger ")
+            # self.login_label = ttk.Label(self.login_frame, text="Building tab 2 for auto tagger...", background="#f0f0f0", width=min_width, anchor='center')
+            # self.login_label.grid(row=3, column=0, columnspan=2, pady=2, sticky='nsew')
+            # self.login_frame.update()
+            # self.create_auto_tagger_table()
             
-            # Tab #3
-            self.tab_full_forecast = ttk.Frame(self.notebook)
-            self.notebook.add(self.tab_full_forecast, text=" Edit Forecast Line Items ")
-            self.login_label = ttk.Label(self.login_frame, text="Building tab 3 for forecast line items...", background="#f0f0f0", width=min_width, anchor='center')
-            self.login_label.grid(row=3, column=0, columnspan=2, pady=2, sticky='nsew')
-            self.login_frame.update()
-            self.create_full_forecast_table()
+            # # Tab #3
+            # self.tab_full_forecast = ttk.Frame(self.notebook)
+            # self.notebook.add(self.tab_full_forecast, text=" Edit Forecast Line Items ")
+            # self.login_label = ttk.Label(self.login_frame, text="Building tab 3 for forecast line items...", background="#f0f0f0", width=min_width, anchor='center')
+            # self.login_label.grid(row=3, column=0, columnspan=2, pady=2, sticky='nsew')
+            # self.login_frame.update()
+            # self.create_full_forecast_table()
             
             # Tab #4
             self.tab_add_work_orders = ttk.Frame(self.notebook)
@@ -519,24 +519,24 @@ class App:
            
         # Refresh button
         refresh_button = ttk.Button(self.tab1_top_frame_buttons, text="Refresh All Data", command=self.refresh_gl_forecast_tables_tab1) # , bg='#507DBC', fg='#FFFFFF', width=15)
-        refresh_button.pack(side='left', padx=10, pady=10, anchor='w')
+        refresh_button.pack(side='left', padx=5, pady=5, anchor='w')
         self.refresh_button = refresh_button
         
         # Update Button
         update_gl_button = ttk.Button(self.tab1_top_frame_buttons, text="Update GL Record", command=self.open_update_window, state="disabled")
-        update_gl_button.pack(side='left', padx=10, pady=10, anchor='w')
+        update_gl_button.pack(side='left', padx=5, pady=5, anchor='w')
         self.update_gl_button = update_gl_button  # Store the button as an instance variable to access it later
         
         # Delete Button
         delete_gl_record_button = ttk.Button(self.tab1_top_frame_buttons, text="Delete GL Record", 
                                           command=self.delete_gl_record, state="disabled",
                                           style="Delete.TButton")
-        delete_gl_record_button.pack(side='left', padx=75, pady=10, anchor='w')
+        delete_gl_record_button.pack(side='left', padx=75, pady=5, anchor='w')
         self.delete_gl_record_button = delete_gl_record_button
                 
         # Export Button
         export_button = ttk.Button(self.tab1_top_frame_buttons, text="Export GL Data (csv)", command=self.export_csv_gl)
-        export_button.pack(side='right', padx=10, pady=10, anchor='e')
+        export_button.pack(side='right', padx=5, pady=5, anchor='e')
         self.export_button = export_button
         
         # Last Updated Label
@@ -547,7 +547,7 @@ class App:
         cursor.execute(query_gl_updated)
         gl_update_results = cursor.fetchall()[0][0]
         self.gl_udpated_label = tk.Label(self.tab1_top_frame_buttons, text=f"Last Upload: {gl_update_results}", bg='#DCDAD5')
-        self.gl_udpated_label.pack(side='right', padx=10, pady=10, anchor='e')
+        self.gl_udpated_label.pack(side='right', padx=5, pady=5, anchor='e')
         
         
         # Create the filter frame
@@ -636,20 +636,20 @@ class App:
         # Add "Undo Filter" button
         undo_filter_button = ttk.Button(self.tab1_bottom_frame_buttons, text="Show All Items", 
                                         command=self.undo_forecast_filter) # , bg='#507DBC', fg='#FFFFFF', width=15)
-        undo_filter_button.pack(side='left', padx=10, pady=5, anchor='w')
+        undo_filter_button.pack(side='left', padx=5, pady=5, anchor='w')
         self.undo_filter_button = undo_filter_button
         
         # Insert Button
         insert_record_button = ttk.Button(self.tab1_bottom_frame_buttons, text="Quick Add from GL", 
                                           command=self.open_insert_forecast_from_gl_window, state="disabled")
-        insert_record_button.pack(side='left', padx=10, pady=5, anchor='w')
+        insert_record_button.pack(side='left', padx=5, pady=5, anchor='w')
         self.insert_record_button = insert_record_button
         
         # Link Button
         link_button = ttk.Button(self.tab1_bottom_frame_buttons, text="Add to Auto Tagger", 
                                           command=self.add_gl_to_auto_tagger, state="disabled",
                                           style="Important.TButton")
-        link_button.pack(side='left', padx=75, pady=10, anchor='w')
+        link_button.pack(side='left', padx=75, pady=5, anchor='w')
         self.link_button = link_button
     
         
@@ -1498,20 +1498,20 @@ class App:
         # Refresh button
         refresh_button_at = ttk.Button(self.tab_2_button_frame, text="Refresh Auto Tagger", 
                                        command=self.refresh_autotagger_tab2) # , bg='#507DBC', fg='#FFFFFF', width=15)
-        refresh_button_at.pack(side='left', padx=10, pady=10, anchor='w')
+        refresh_button_at.pack(side='left', padx=5, pady=5, anchor='w')
         self.refresh_button_at = refresh_button_at
         
         # Edit button
         edit_button_at = ttk.Button(self.tab_2_button_frame, text="Edit Record", 
                                        command=self.refresh_autotagger_tab2, state="disabled")
-        edit_button_at.pack(side='left', padx=10, pady=10, anchor='w')
+        edit_button_at.pack(side='left', padx=5, pady=5, anchor='w')
         self.edit_button_at = edit_button_at
         
         # Delete Button
         delete_auto_tagger_record_button = ttk.Button(self.tab_2_button_frame, text="Delete Tagger Record", 
                                           command=self.delete_auto_tagger_record, state="disabled",
                                           style="Delete.TButton")
-        delete_auto_tagger_record_button.pack(side='left', padx=75, pady=10, anchor='w')
+        delete_auto_tagger_record_button.pack(side='left', padx=75, pady=5, anchor='w')
         self.delete_auto_tagger_record_button = delete_auto_tagger_record_button
         
         # Create the table
@@ -1709,20 +1709,20 @@ class App:
         # Update button
         update_button_ff = ttk.Button(self.tab_3_button_frame, text="Update Forecast Item", 
                                       command=self.open_update_full_forecat_window, state="disabled")
-        update_button_ff.pack(side='left', padx=10, pady=10, anchor='w')
+        update_button_ff.pack(side='left', padx=5, pady=5, anchor='w')
         self.update_button_ff = update_button_ff
         
         # Copy and Paste button
         copy_and_paste_button_ff = ttk.Button(self.tab_3_button_frame, text="Copy and Add New", 
                                               command=self.open_insert_full_forecat_window, state="disabled")
-        copy_and_paste_button_ff.pack(side='left', padx=10, pady=10, anchor='w')
+        copy_and_paste_button_ff.pack(side='left', padx=5, pady=5, anchor='w')
         self.copy_and_paste_button_ff = copy_and_paste_button_ff
         
         # Delete Button
         delete_forecast_li_record_button = ttk.Button(self.tab_3_button_frame, text="Delete Forecast Record", 
                                           command=self.delete_full_forecast_record, state="disabled",
                                           style="Delete.TButton")
-        delete_forecast_li_record_button.pack(side='left', padx=75, pady=10, anchor='w')
+        delete_forecast_li_record_button.pack(side='left', padx=75, pady=5, anchor='w')
         self.delete_forecast_li_record_button = delete_forecast_li_record_button
         
         # Year Drop Down        
@@ -1730,11 +1730,11 @@ class App:
         self.years = list(self.dropdown_values['Years'].keys())
         self.selected_year = tk.StringVar(value=str(self.current_year))
         self.year_label_frcst = tk.Label(self.tab_3_button_frame, text="Year:", bg='#DCDAD5', anchor='e')
-        self.year_label_frcst.pack(side='left', padx=5, pady=10, anchor='w')
+        self.year_label_frcst.pack(side='left', padx=5, pady=5, anchor='w')
         
         self.year_dropdown_frcst = ttk.Combobox(self.tab_3_button_frame, textvariable=self.selected_year,
                                                 values=self.years, width=dropdown_width)
-        self.year_dropdown_frcst.pack(side='left', padx=5, pady=10, anchor='w')
+        self.year_dropdown_frcst.pack(side='left', padx=5, pady=5, anchor='w')
         self.filter_year_forecast = self.year_dropdown_frcst.get()
         
         # Months Drop Down
@@ -1742,22 +1742,22 @@ class App:
         self.months = list(self.dropdown_values['Months'].keys())
         self.selected_month = tk.StringVar(value=self.months[self.current_month - 1])
         self.month_label_frcst = tk.Label(self.tab_3_button_frame, text="Month:", bg='#DCDAD5', anchor='e')
-        self.month_label_frcst.pack(side='left', padx=5, pady=10, anchor='w')
+        self.month_label_frcst.pack(side='left', padx=5, pady=5, anchor='w')
         
         self.month_dropdown_frcst = ttk.Combobox(self.tab_3_button_frame, textvariable=self.selected_month,
                                                  values=self.months, width=dropdown_width)
-        self.month_dropdown_frcst.pack(side='left', padx=5, pady=10, anchor='w')
+        self.month_dropdown_frcst.pack(side='left', padx=5, pady=5, anchor='w')
         self.filter_month_forecast = self.month_dropdown_frcst.get()
         
         # Refresh button
         refresh_button_ff = ttk.Button(self.tab_3_button_frame, text="Refresh Data", command=self.refresh_full_forecast_tab3)
-        refresh_button_ff.pack(side='left', padx=20, pady=10, anchor='w')
+        refresh_button_ff.pack(side='left', padx=10, pady=5, anchor='w')
         self.refresh_button_ff = refresh_button_ff
         
         # Export Button
         export_forecast_button = ttk.Button(self.tab_3_button_frame, text="Export Forecast (csv)", 
                                             command=self.export_csv_full_forecast)
-        export_forecast_button.pack(side='right', padx=10, pady=10, anchor='e')
+        export_forecast_button.pack(side='right', padx=5, pady=5, anchor='e')
         self.export_forecast_button = export_forecast_button
         
         
@@ -1824,7 +1824,7 @@ class App:
         # Apply Filters Button
         frcst_apply_filter_button = ttk.Button(self.tab_3_apply_filters_frame, text="Apply Filters", 
                                                command=self.apply_full_forecast_filters)
-        frcst_apply_filter_button.pack(side='left', padx=10, pady=10, anchor='w')
+        frcst_apply_filter_button.pack(side='left', padx=5, pady=5, anchor='w')
         self.frcst_apply_filter_button = frcst_apply_filter_button
 
         
@@ -2829,19 +2829,19 @@ class App:
         
         # Refresh button
         refresh_button_wo = ttk.Button(self.tab_4_button_frame, text="Refresh WO Data", command=self.refresh_work_orders_tab4)
-        refresh_button_wo.pack(side='left', padx=10, pady=10, anchor='w')
+        refresh_button_wo.pack(side='left', padx=5, pady=5, anchor='w')
         self.refresh_button_wo = refresh_button_wo
         
-        find_wo_details_button = ttk.Button(self.tab_4_button_frame, text="Edit Work Order", 
-                                            command=self.refresh_work_orders_tab4, state="disabled")
-        find_wo_details_button.pack(side='left', padx=10, pady=10, anchor='w')
-        self.find_wo_details_button = find_wo_details_button
+        edit_wo_details_button = ttk.Button(self.tab_4_button_frame, text="Edit Work Order", 
+                                            command=self.edit_wo_details_tab4, state="disabled")
+        edit_wo_details_button.pack(side='left', padx=5, pady=5, anchor='w')
+        self.edit_wo_details_button = edit_wo_details_button
         
         # Delete Button
         delete_new_wo = ttk.Button(self.tab_4_button_frame, text="Remove WO from Report", 
                                           command=self.delete_new_work_order_record, state="disabled",
                                           style="Delete.TButton")
-        delete_new_wo.pack(side='left', padx=75, pady=10, anchor='w')
+        delete_new_wo.pack(side='left', padx=75, pady=5, anchor='w')
         self.delete_new_wo = delete_new_wo
         
         
@@ -2863,9 +2863,18 @@ class App:
         forecast_costs_button.pack(side='left', padx=5, pady=5, anchor='w', expand=False)
         self.forecast_costs_button = forecast_costs_button
         
+        # Add Work Order to Forecast
+        tab_4_add_wo_to_forecast_button = ttk.Button(self.tab_4_bottom_buttons_frame, text="Add WO to Forecast", 
+                                          command=self.add_work_order_to_forecast, state="disabled",
+                                          style="Important.TButton")
+        tab_4_add_wo_to_forecast_button.pack(side='left', padx=5, pady=5, anchor='w')
+        self.tab_4_add_wo_to_forecast_button = tab_4_add_wo_to_forecast_button
+        
+        
+        
         # Edit Forecast Item
         find_forecast_from_wo_button = ttk.Button(self.tab_4_bottom_buttons_frame, text="Edit Forecast Record", 
-                                                  command=self.refresh_work_orders_tab4, state="disabled")
+                                                  command=self.open_window_filtered_forecast_record, state="disabled")
         find_forecast_from_wo_button.pack(side='right', padx=5, pady=5, anchor='e', expand=False)
         self.find_forecast_from_wo_button = find_forecast_from_wo_button
         
@@ -2977,7 +2986,6 @@ class App:
         # create treeview columns using the provided function
         self.create_treeview_columns(self.tree_new_work_orders, self.dtype_dict_new_work_orders, 
                                      self.column_headers_new_work_orders, self.rows_new_work_orders)
-        
 
         # create treeview rows
         for row in self.rows_new_work_orders:
@@ -3099,10 +3107,15 @@ class App:
         self.treeScroll.pack(in_=self.tab_4_bottom_table2_frame, side='bottom', fill='x')
         self.tree_filtered_forecast.pack(in_=self.tab_4_bottom_table2_frame, pady=(1, 0), fill='both', expand=True)
         self.tree_filtered_forecast.bind("<Shift-MouseWheel>", lambda event: self.tree_filtered_forecast.xview_scroll(int(-1*(event.delta/5)), "units"))
-    
+        
+        # this allows the delete button to appear after a row is selected
+        self.tree_filtered_forecast.bind('<<TreeviewSelect>>', self.on_filtered_forecast_row_select)
+        
+        
         
     
     # bottom left quad, top half
+    # summarized details of the work order: id, cost object code, locale, etc...
     def create_work_order_detail_labels(self):
         # these are the labels for work order details
         self.tab_4_bottom_left_top_half_frame = Frame(self.tab_4_bottom_left_frame, bg='#DCDAD5') # bg='#FFFFFF'
@@ -3176,13 +3189,9 @@ class App:
         if self.tab_4_bottom_left_bottom_half_frame is not None:
             self.tab_4_bottom_left_bottom_half_frame.destroy()
         
-        # counter = 0
-        # for x in wo_row:
-        #     print(f"{counter}. {x}")
-        #     counter += 1
-        
         # enable buttons
         self.delete_new_wo.config(state="normal")
+        self.find_forecast_from_wo_button.config(state="disabled") # re-disable forecast record
         
         # Row 0 Columns 0,1 - Work Order ID
         wo_text_label = tk.Label(self.tab_4_bottom_left_top_half_frame, text=f"{str(wo_row[17])}", background='#DCDAD5', width=20, anchor='w')
@@ -3243,7 +3252,6 @@ class App:
     # REFRESH WORK ORDER DATA
     def refresh_work_orders_tab4(self):
         try:
-            
             # destroy then rebuild table1 frame
             if self.tab_4_table1_frame is not None:
                 self.tab_4_table1_frame.destroy()
@@ -3254,8 +3262,8 @@ class App:
             if self.tab_4_bottom_table2_frame is not None:
                 self.tab_4_bottom_table2_frame.destroy()
             
+            # recreate the filter forecast table (bottom right)
             self.create_filtered_forecast_table_tab_4()
-            
             
             # destroy bottom left quad frames
             if self.tab_4_bottom_left_top_half_frame is not None:
@@ -3266,13 +3274,22 @@ class App:
             if self.tab_4_bottom_left_bottom_half_frame is not None:
                 self.tab_4_bottom_left_bottom_half_frame.destroy()
             
-            
             tk.messagebox.showinfo("Success", "Work Order data refreshed successfully!")
         except Exception as e:
             msg = str(e)
             print('Failed: '+ str(msg))
             tk.messagebox.showinfo("Failed", f"Work Order data NOT refreshed successfully! {msg}")
+    
+    
+    # Find Work Order Details
+    def edit_wo_details_tab4(self):
+        try:
+            pass
             
+        except Exception as e:
+            msg = str(e)
+            print('Failed: '+ str(msg))
+            tk.messagebox.showinfo("Failed", f"Work Order was NOT retreived successfully! {msg}")
             
             
     def delete_new_work_order_record(self):
@@ -3297,7 +3314,6 @@ class App:
                 """ 
                 print(query)
                 cursor.execute(query)
-                print(f"Executed DELETE Stored Proc for {wo_id}!")
                 conn.commit()
         
                 # Update the Treeview to remove the deleted row
@@ -3314,29 +3330,7 @@ class App:
                 print('Failed: '+ str(msg))
                 tk.messagebox.showinfo("Failed", f"Something went wrong trying to remove Work Order {wo_id}. {msg}")
             
-            
-            
-    # Find Work Order Details
-    def edit_wo_details_tab4(self):
-        try:
-            # Create connection
-            conn = self.connect_to_db()
-            cursor = conn.cursor()
-            
-            query_work_order_details = f"""
-            EXEC [dbo].[sp_select_work_order_details] '{self.wo_id}'
-            """
-            # print(query_work_order_details)
-            # cursor.execute(query_work_order_details)
-            
-            # self.create_filtered_forecast_table(self.wo_id) # pass through work order 
-            
-        except Exception as e:
-            msg = str(e)
-            print('Failed: '+ str(msg))
-            tk.messagebox.showinfo("Failed", f"Work Order was NOT retreived successfully! {msg}")
-                
-            
+        
 
     def calculate_forecast_values(self):
         if self.tab_4_bottom_left_bottom_half_frame is not None:
@@ -3366,6 +3360,10 @@ class App:
         header_labels = ["Month", "Weekends", "Holidays", "Est. PTO", "WO Work Days", "Cost"]
         for col, label in enumerate(header_labels):
             tk.Label(self.tab_4_bottom_left_bottom_half_frame, text=label, background='#DCDAD5', width=15).grid(row=0, column=col, padx=5, pady=5, sticky='w')
+    
+    
+        # Initialize the list to store the Entry fields
+        self.forecasted_cost_entries = []
     
         # Loop through the query results and create the table rows
         for row_num, row_data in enumerate(self.rows_wo_forecast):
@@ -3397,9 +3395,48 @@ class App:
             forecasted_cost_entry = tk.Entry(self.tab_4_bottom_left_bottom_half_frame, width=15, justify='right')
             forecasted_cost_entry.insert(0, f"{float(row_data[7]):,.2f}")
             forecasted_cost_entry.grid(row=row_num+1, column=5, padx=(5,10), pady=5, sticky='w')
+            # Store the Entry field in the list
+            self.forecasted_cost_entries.append(forecasted_cost_entry)
             
         self.tab_4_bottom_left_frame.update()
+        
+        self.tab_4_add_wo_to_forecast_button.config(state="normal")
+        
+        
+        
+    def add_work_order_to_forecast(self):
+        self.item_wo_id = self.tree_new_work_orders.focus() # wo short for work order
+        wo_row = self.tree_new_work_orders.item(self.item_wo_id)['values']
+        wo_id = wo_row[0]  # Replace with the index of the primary key column
+        
+        forecasted_costs = [entry.get() for entry in self.forecasted_cost_entries]
+        print(wo_id, forecasted_costs)
+        
+        try:
+            
+            # refresh tables at the end
+            self.create_work_order_table_tab_4()
+            self.create_filtered_forecast_table_tab_4()
+            
+        except Exception as e:
+            msg = str(e)
+            print('Failed: '+ str(msg))
+            tk.messagebox.showinfo("Failed", f"Something went wrong trying to add the Work Order {wo_id} to the Forecast. {msg}")
+        
     
+
+    def on_filtered_forecast_row_select(self, event):
+        self.filtered_forecast_id = self.tree_filtered_forecast.focus()
+        filtered_forecast_row = self.tree_filtered_forecast.item(self.filtered_forecast_id)['values']
+        ff_id = filtered_forecast_row[0]  # Replace with the index of the primary key column
+        print(f"SELECTED FILTERED FORECAST ID: {ff_id}")
+        
+        self.find_forecast_from_wo_button.config(state="normal") # enable button
+        
+        
+        
+    def open_window_filtered_forecast_record(self):
+        pass
     
     
     #####################
