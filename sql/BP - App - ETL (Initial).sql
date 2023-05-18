@@ -1311,7 +1311,7 @@ SELECT REPLACE(CAST(dd.[full_date] AS VARCHAR), '-', '') AS ID
       ,dd.[day_of_month]
       ,dd.[day_of_year]
       ,dd.[weekday_weekend]
-      ,dd.[week_of_month]
+	  ,nd.MondayCount as [week_of_month]
       ,dd.[week_of_year_sunday]
       ,dd.[week_of_year_monday]
       ,dd.[month_name]
@@ -1333,10 +1333,74 @@ SELECT REPLACE(CAST(dd.[full_date] AS VARCHAR), '-', '') AS ID
 	  ,CONCAT(dd.[calendar_year], RIGHT('00' + CAST(dd.[month_of_year] AS VARCHAR(2)), 2)) as [year_month]
 	  ,CONCAT(dd.[calendar_year], RIGHT('00' + CAST(dd.[month_of_year] AS VARCHAR(2)), 2), '01') as [first_of_month_date_key]
 FROM [EID].[BUSPLAN].[date_dimension] as dd
+LEFT JOIN (
+    SELECT 
+        full_date, 
+        day_of_week_monday,
+        calendar_year,
+        month_of_year,
+        ROW_NUMBER() OVER (PARTITION BY calendar_year, month_of_year ORDER BY full_date) as day_number,
+        SUM(CASE WHEN day_of_week_monday = 1 AND [day_of_month] > 1 THEN 1 ELSE 0 END) 
+            OVER (PARTITION BY calendar_year, month_of_year ORDER BY full_date 
+                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS MondayCount
+    FROM [EID].[BUSPLAN].[date_dimension]
+) AS nd
+    ON dd.full_date = nd.full_date
 LEFT JOIN [EID].[BUSPLAN].[date_dimension] as ff
-  ON dd.[forecasting_month] = ff.[full_date]
-ORDER BY full_date
+    ON dd.[forecasting_month] = ff.[full_date]
+ORDER BY dd.full_date;
 ;
+
+
+-- UPDATE FORECASTING MONTH
+DROP TABLE IF EXISTS #TMP_UPDATE_FORECASTING_MONTH;
+SELECT
+	dd.date_id,
+	dd.full_date,
+	dd.[calendar_year],
+	dd.week_of_month,
+	dd.day_name_of_week,
+	lw.last_week,
+	ld.last_day_of_week, 
+	DATEADD(month, 1, dd.full_date) as next_month
+INTO #TMP_UPDATE_FORECASTING_MONTH
+FROM [dbo].[date_dimension] as dd
+JOIN
+	(SELECT
+		calendar_year_month,
+		MAX(week_of_month) as last_week
+	FROM [dbo].[date_dimension]
+	--WHERE date_id >= 20200101
+	GROUP BY calendar_year_month
+	) AS lw
+	ON dd.calendar_year_month = lw.calendar_year_month
+JOIN
+	(SELECT
+		calendar_year_month,
+		week_of_month,
+		MAX(day_of_week_monday) as last_day_of_week
+	FROM [dbo].[date_dimension]
+	--WHERE date_id >= 20200101
+	GROUP BY calendar_year_month, week_of_month
+	) AS ld
+	ON lw.calendar_year_month = ld.calendar_year_month
+	AND lw.last_week = ld.week_of_month
+WHERE 1=1 -- date_id >= 20200101
+AND dd.week_of_month = lw.last_week
+AND ld.last_day_of_week < 5
+ORDER BY 1,2,3
+;
+
+
+
+UPDATE [dbo].[date_dimension]
+SET [date_dimension].forecasting_month = CONCAT(FORMAT(t.next_month, 'MMM'), '-', RIGHT(YEAR(t.next_month), 2))
+FROM #TMP_UPDATE_FORECASTING_MONTH as t
+WHERE date_dimension.date_id = t.date_id
+;
+
+
+
 
 
 -- DEPARTMENT

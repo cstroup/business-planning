@@ -731,6 +731,23 @@ GROUP BY [department_long]
 GO
 
 
+DROP VIEW IF EXISTS vw_dropdown_account;
+GO
+CREATE VIEW vw_dropdown_account AS 
+
+SELECT
+	MIN([account_id]) as [account_id],
+	[account_code] as [account_code]
+FROM [dbo].[account]
+WHERE [account_code] IS NOT NULL
+AND LEN([account_code]) > 0
+AND LEFT([account_code], 1) IN (5,6)
+GROUP BY [account_code]
+;
+GO
+
+
+
 
 DROP VIEW IF EXISTS vw_general_ledger_last_upload;
 GO
@@ -762,6 +779,54 @@ FROM
 ;
 GO
 
+
+DROP VIEW IF EXISTS vw_actualized_date;
+GO
+CREATE VIEW vw_actualized_date AS 
+
+SELECT 
+	dd.short_month_short_year as actualized_date
+FROM
+	(SELECT
+		MAX([date_id]) as max_date
+	FROM [dbo].[forecast_line_item_v2]
+	WHERE [is_actualized] = 1
+	) as t
+JOIN [dbo].[date_dimension] as dd
+	ON t.max_date = dd.date_id
+;
+GO
+
+
+SELECT [date_id], [full_date] 
+        FROM [dbo].[vw_dropdown_date] 
+        WHERE [full_date] >= DATEADD(day, -90, CURRENT_TIMESTAMP)
+        AND [full_date] < CURRENT_TIMESTAMP
+        ORDER BY 1
+
+DROP VIEW IF EXISTS vw_po_number_forecast_id;
+GO
+CREATE VIEW vw_po_number_forecast_id AS 
+
+SELECT DISTINCT
+    [purchase_order_number],
+    [forecast_id]
+FROM [dbo].[auto_tag]
+WHERE is_deleted = 0
+AND [purchase_order_number] IS NOT NULL
+AND LEN([purchase_order_number]) > 0
+
+UNION
+
+SELECT DISTINCT
+	[purchase_order_number],
+	[forecast_id]
+FROM [dbo].[general_ledger]
+WHERE [forecast_id] IS NOT NULL
+AND [purchase_order_number] IS NOT NULL
+AND LEN([purchase_order_number]) > 0
+;
+GO
 
 
 SELECT

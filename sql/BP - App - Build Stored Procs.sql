@@ -360,7 +360,7 @@ GO
 
 --EXEC [dbo].[sp_select_work_order_details] '80632'
 
--- EXEC [dbo].[sp_select_work_order_details] '71433'
+-- EXEC [dbo].[sp_select_work_order_details] '79247'
 
 DROP PROCEDURE IF EXISTS [dbo].[sp_select_work_order_details];
 GO
@@ -371,8 +371,8 @@ BEGIN
 
 
 SELECT
-	[calendar_year_month] as [Year Month],
-	[short_month_short_year] as [Month Year],
+	MIN(full_date) as [Year Month],
+	[forecasting_month] as [Month Year],
 	SUM(is_weekend) as [Weekends],
 	SUM(is_company_holiday) as [Holiday],
 	SUM(is_estimated_pto) as [Estimated PTO],
@@ -385,6 +385,7 @@ FROM
 		dates.[full_date],
 		dates.[short_month_short_year],
 		dates.[calendar_year_month],
+		dates.[forecasting_month],
 		start_d.[full_date] as worker_start_date,
 		end_d.[full_date] as worker_end_date,
 		wo.[allocation_percentage],
@@ -412,10 +413,6 @@ FROM
 			ELSE 0
 		END as work_order_workdays,
 		CASE
-			--WHEN dates.[full_date] BETWEEN start_d.[full_date] AND end_d.[full_date] AND l.[local] IN ('Onshore')
-			--THEN wo.current_bill_rate * (wo.allocation_percentage/100) * dates.onshore_work_hours
-			--WHEN dates.[full_date] BETWEEN start_d.[full_date] AND end_d.[full_date] AND l.[local] NOT IN ('Onshore')
-			--THEN wo.current_bill_rate * (wo.allocation_percentage/100) * dates.offshore_work_hours
 			WHEN dates.[full_date] BETWEEN start_d.[full_date] AND end_d.[full_date] -- AND l.[local] IS NULL -- unknown
 				AND dates.[weekday_weekend] != 'Weekend'
 				AND dates.is_company_holiday = 0
@@ -437,7 +434,8 @@ FROM
 		ON wo.[cost_object_code_id] = coc.[cost_object_code_id]
 	WHERE wo.[id] = @work_order_id
 	) AS t
-GROUP BY [calendar_year_month], [short_month_short_year]
+GROUP BY [forecasting_month]
+HAVING RIGHT(YEAR(MIN(full_date)),2) = RIGHT([forecasting_month],2)
 ORDER BY [Year Month]
 ;
 
@@ -540,14 +538,13 @@ GO
 
 
 
--- EXEC [dbo].[sp_select_full_forecast_metrics] 2023, 'May';
+-- EXEC [dbo].[sp_select_full_forecast_metrics] 2023;
 
 
 DROP PROCEDURE IF EXISTS [dbo].[sp_select_full_forecast_metrics];
 GO
 CREATE PROCEDURE [dbo].[sp_select_full_forecast_metrics]
-    @var_year INT,
-	@var_month VARCHAR(20)
+    @var_year INT
 AS
 BEGIN
 
@@ -564,8 +561,7 @@ FROM (
 			dd.[calendar_year],
 			LEFT(dd.[month_name], 3) as [date_type],
 			CASE
-				WHEN LEFT(fli.[date_id], 6) < (SELECT MIN([date_id]) FROM [dbo].[date_dimension] WHERE [calendar_year] = @var_year AND [month_name] = @var_month)
-					AND fli.[actual] > 0
+				WHEN fli.[is_actualized] = 1
 				THEN fli.[actual]
 				ELSE fli.[amount]
 			END as amount
@@ -580,25 +576,18 @@ FROM (
     FOR [date_type] IN ([Jan], [Feb], [Mar], [Apr], [May], [Jun], [Jul], [Aug], [Sep], [Oct], [Nov], [Dec])
   ) piv
 ),
-TMP_DATE AS (
-SELECT 
-	MIN([date_id]) AS min_date
-FROM [dbo].[date_dimension] 
-WHERE [calendar_year] = @var_year AND [month_name] = @var_month
-),
 TMP_FORECAST_FY_METRICS AS (
 SELECT
 	LEFT(frcst.[date_id], 4) as [calendar_year],
 	frcst.[forecast_id],
-	t.min_date,
 	SUM(CASE
-		WHEN LEFT(frcst.[date_id], 6) < t.min_date AND frcst.[actual] > 0
+		WHEN frcst.[is_actualized] = 1
 		THEN frcst.[actual]
 		ELSE frcst.[amount]
 	END) as fy_forecast,
 	SUM(frcst.[budget]) as fy_budget,
 	SUM(CASE
-		WHEN LEFT(frcst.[date_id], 6) < t.min_date AND frcst.[actual] > 0
+		WHEN frcst.[is_actualized] = 1
 		THEN frcst.[actual] - frcst.[budget]
 		ELSE frcst.[amount] - frcst.[budget]
 	END) as fy_forecast_budget_var,
@@ -610,9 +599,8 @@ SELECT
 	SUM(0) as prev_fy_q2f,
 	SUM(0) as prev_fy_q3f
 FROM [dbo].[forecast_line_item_v2] as frcst
-JOIN TMP_DATE as t
-	ON 1=1
-GROUP BY LEFT(frcst.[date_id], 4), frcst.[forecast_id], t.min_date
+WHERE LEFT(frcst.[date_id], 4) = @var_year
+GROUP BY LEFT(frcst.[date_id], 4), frcst.[forecast_id]
 ),
 TMP_FORECAST_QUARTER_METRICS AS (
 SELECT
@@ -969,8 +957,7 @@ DROP PROCEDURE IF EXISTS [dbo].[sp_select_full_forecast_and_items];
 GO
 CREATE PROCEDURE [dbo].[sp_select_full_forecast_and_items]
     @forecast_id BIGINT,
-	@var_year INT,
-	@var_month VARCHAR(20)
+	@var_year INT
 AS
 BEGIN
 
@@ -987,8 +974,7 @@ FROM (
 			dd.[calendar_year],
 			LEFT(dd.[month_name], 3) as [date_type],
 			CASE
-				WHEN LEFT(fli.[date_id], 6) < (SELECT MIN([date_id]) FROM [dbo].[date_dimension] WHERE [calendar_year] = @var_year AND [month_name] = @var_month)
-					AND fli.[actual] > 0
+				WHEN fli.[is_actualized] = 1
 				THEN fli.[actual]
 				ELSE fli.[amount]
 			END as amount
@@ -997,32 +983,25 @@ FROM (
 			ON fli.[date_id] = dd.[date_id]
 		WHERE fli.[is_deleted] = 0
 		AND dd.[calendar_year] = @var_year
-		AND fli.[forecast_id] = @forecast_id
+		AND fli.forecast_id = @forecast_id
 	) as t
 	PIVOT (
     SUM([amount])
     FOR [date_type] IN ([Jan], [Feb], [Mar], [Apr], [May], [Jun], [Jul], [Aug], [Sep], [Oct], [Nov], [Dec])
   ) piv
 ),
-TMP_DATE AS (
-SELECT 
-	MIN([date_id]) AS min_date
-FROM [dbo].[date_dimension] 
-WHERE [calendar_year] = @var_year AND [month_name] = @var_month
-),
 TMP_FORECAST_FY_METRICS AS (
 SELECT
 	LEFT(frcst.[date_id], 4) as [calendar_year],
 	frcst.[forecast_id],
-	t.min_date,
 	SUM(CASE
-		WHEN LEFT(frcst.[date_id], 6) < t.min_date AND frcst.[actual] > 0
+		WHEN frcst.[is_actualized] = 1
 		THEN frcst.[actual]
 		ELSE frcst.[amount]
 	END) as fy_forecast,
 	SUM(frcst.[budget]) as fy_budget,
 	SUM(CASE
-		WHEN LEFT(frcst.[date_id], 6) < t.min_date AND frcst.[actual] > 0
+		WHEN frcst.[is_actualized] = 1
 		THEN frcst.[actual] - frcst.[budget]
 		ELSE frcst.[amount] - frcst.[budget]
 	END) as fy_forecast_budget_var,
@@ -1034,10 +1013,9 @@ SELECT
 	SUM(0) as prev_fy_q2f,
 	SUM(0) as prev_fy_q3f
 FROM [dbo].[forecast_line_item_v2] as frcst
-JOIN TMP_DATE as t
-	ON 1=1
-WHERE frcst.[forecast_id] = @forecast_id
-GROUP BY LEFT(frcst.[date_id], 4), frcst.[forecast_id], t.min_date
+WHERE LEFT(frcst.[date_id], 4) = @var_year
+AND frcst.forecast_id = @forecast_id
+GROUP BY LEFT(frcst.[date_id], 4), frcst.[forecast_id]
 ),
 TMP_FORECAST_QUARTER_METRICS AS (
 SELECT
@@ -1122,9 +1100,6 @@ LEFT JOIN TMP_FORECAST_QUARTER_METRICS as qu
 	ON t.forecast_id = qu.[forecast_id]
 	AND t.calendar_year = qu.calendar_year
 WHERE f.[Forecast ID] = @forecast_id
---AND f.[is_deleted] = 0
-ORDER BY 1 DESC
-;
 END
 ;
 GO
@@ -1273,6 +1248,7 @@ BEGIN
 		INSERT ([cost_object_code], [is_opex], [raw]) 
 		VALUES (SRC.data_value, IIF(LEFT(SRC.data_value, 2) = 'FG', 1, 0), SRC.data_value)
 	;
+
 
 	-- @account
 	MERGE INTO [dbo].[account] AS TGT
@@ -1481,11 +1457,9 @@ DROP PROCEDURE IF EXISTS [dbo].[sp_select_full_forecast_and_items_for_update];
 GO
 CREATE PROCEDURE [dbo].[sp_select_full_forecast_and_items_for_update]
     @forecast_id BIGINT,
-	@var_year INT,
-	@var_month VARCHAR(20)
+	@var_year INT
 AS
 BEGIN
-
 WITH TMP_FORECAST_MONTHS AS (
 SELECT 
 	[forecast_id], 
@@ -1499,8 +1473,7 @@ FROM (
 			dd.[calendar_year],
 			LEFT(dd.[month_name], 3) as [date_type],
 			CASE
-				WHEN LEFT(fli.[date_id], 6) < (SELECT MIN([date_id]) FROM [dbo].[date_dimension] WHERE [calendar_year] = @var_year AND [month_name] = @var_month)
-					AND fli.[actual] > 0
+				WHEN fli.[is_actualized] = 1
 				THEN fli.[actual]
 				ELSE fli.[amount]
 			END as amount
@@ -1509,32 +1482,25 @@ FROM (
 			ON fli.[date_id] = dd.[date_id]
 		WHERE fli.[is_deleted] = 0
 		AND dd.[calendar_year] = @var_year
-		AND fli.[forecast_id] = @forecast_id
+		AND fli.forecast_id = @forecast_id
 	) as t
 	PIVOT (
     SUM([amount])
     FOR [date_type] IN ([Jan], [Feb], [Mar], [Apr], [May], [Jun], [Jul], [Aug], [Sep], [Oct], [Nov], [Dec])
   ) piv
 ),
-TMP_DATE AS (
-SELECT 
-	MIN([date_id]) AS min_date
-FROM [dbo].[date_dimension] 
-WHERE [calendar_year] = @var_year AND [month_name] = @var_month
-),
 TMP_FORECAST_FY_METRICS AS (
 SELECT
 	LEFT(frcst.[date_id], 4) as [calendar_year],
 	frcst.[forecast_id],
-	t.min_date,
 	SUM(CASE
-		WHEN LEFT(frcst.[date_id], 6) < t.min_date AND frcst.[actual] > 0
+		WHEN frcst.[is_actualized] = 1
 		THEN frcst.[actual]
 		ELSE frcst.[amount]
 	END) as fy_forecast,
 	SUM(frcst.[budget]) as fy_budget,
 	SUM(CASE
-		WHEN LEFT(frcst.[date_id], 6) < t.min_date AND frcst.[actual] > 0
+		WHEN frcst.[is_actualized] = 1
 		THEN frcst.[actual] - frcst.[budget]
 		ELSE frcst.[amount] - frcst.[budget]
 	END) as fy_forecast_budget_var,
@@ -1546,10 +1512,9 @@ SELECT
 	SUM(0) as prev_fy_q2f,
 	SUM(0) as prev_fy_q3f
 FROM [dbo].[forecast_line_item_v2] as frcst
-JOIN TMP_DATE as t
-	ON 1=1
-WHERE frcst.[forecast_id] = @forecast_id
-GROUP BY LEFT(frcst.[date_id], 4), frcst.[forecast_id], t.min_date
+WHERE LEFT(frcst.[date_id], 4) = @var_year
+AND frcst.forecast_id = @forecast_id
+GROUP BY LEFT(frcst.[date_id], 4), frcst.[forecast_id]
 ),
 TMP_FORECAST_QUARTER_METRICS AS (
 SELECT
@@ -1635,9 +1600,6 @@ LEFT JOIN TMP_FORECAST_QUARTER_METRICS as qu
 	ON t.forecast_id = qu.[forecast_id]
 	AND t.calendar_year = qu.calendar_year
 WHERE f.[Forecast ID] = @forecast_id
---AND f.[is_deleted] = 0
-ORDER BY 1 DESC
-;
 END
 ;
 GO

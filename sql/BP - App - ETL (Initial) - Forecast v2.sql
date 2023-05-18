@@ -5,32 +5,47 @@ INSERT INTO [dbo].[forecast_line_item_v2]
            ([forecast_id]
            ,[date_id]
            ,[amount]
+		   ,[forecast]
            ,[budget]
            ,[q1f]
            ,[q2f]
            ,[q3f]
+		   ,[forecast_spring]
+		   ,[forecast_summer]
            ,[actual]
            ,[is_deleted]
+		   ,[is_actualized]
            ,[created_by]
            ,[created_date]
            ,[updated_by]
            ,[updated_date])
 SELECT
-	f.[forecast_id],
-	dd.[date_id],
-	rf.value as [amount], -- this would be forecast?
-	0 as [budget],
-	0 as [q1f],
-	0 as [q2f],
-	0 as [q3f],
-	0 [actual],
-	f.[is_deleted] as [is_deleted], 
-	CURRENT_USER AS [created_by],
-	CURRENT_TIMESTAMP AS [created_date],
-	CURRENT_USER AS [updated_by],
-	CURRENT_TIMESTAMP AS [updated_date]
+	f.forecast_id,
+	dd.date_id,
+	ISNULL(rf.value, 0) AS amount,
+	ISNULL(rf.value, 0) AS forecast,
+	0 AS budget,
+	0 AS q1f,
+	0 AS q2f,
+	0 AS q3f,
+	0 AS forecast_spring,
+	0 AS forecast_summer,
+	0 AS actual,
+	ISNULL(f.is_deleted, 0) AS is_deleted,
+	0 AS is_actualized,
+	CURRENT_USER AS created_by,
+	CURRENT_TIMESTAMP AS created_date,
+	CURRENT_USER AS updated_by,
+	CURRENT_TIMESTAMP AS updated_date
 FROM [dbo].[forecast] as f
 JOIN
+(
+	SELECT 'Jan-23' AS month_num UNION ALL SELECT 'Feb-23' UNION ALL SELECT 'Mar-23' UNION ALL 
+	SELECT 'Apr-23' UNION ALL SELECT 'May-23' UNION ALL SELECT 'Jun-23' UNION ALL 
+	SELECT 'Jul-23' UNION ALL SELECT 'Aug-23' UNION ALL SELECT 'Sep-23' UNION ALL 
+	SELECT 'Oct-23' UNION ALL SELECT 'Nov-23' UNION ALL SELECT 'Dec-23'
+) as m ON 1=1
+LEFT JOIN
 (
 	SELECT 
 		FCSTID, 
@@ -42,6 +57,7 @@ JOIN
 	) AS unpivoted_table
 ) AS rf
 	ON f.[old_forecast_id] = rf.FCSTID
+	AND rf.month_name = m.month_num
 JOIN
 (
 	SELECT 
@@ -50,7 +66,7 @@ JOIN
 	FROM [dbo].[date_dimension]
 	GROUP BY short_month_short_year
 ) as dd 
-	ON rf.month_name = dd.short_month_short_year
+	ON m.month_num = dd.short_month_short_year
 ORDER BY [forecast_id], [date_id]
 ;
 
@@ -86,7 +102,7 @@ GROUP BY year_month, forecast_id
 ORDER BY 1,2
 ;
 
---SELECT * FROM #TMP_ACTUALS
+--SELECT * FROM #TMP_ACTUALS ORDER BY 1 DESC
 
 MERGE [dbo].[forecast_line_item_v2] AS TGT
 USING #TMP_ACTUALS	AS SRC
@@ -94,7 +110,8 @@ ON SRC.forecast_id = TGT.forecast_id
 	AND SRC.year_month = LEFT(TGT.[date_id], 6)
 -- For Updates
 WHEN MATCHED THEN UPDATE SET
-    TGT.[actual]	= SRC.actual
+    TGT.[actual]	= SRC.actual,
+	TGT.[is_actualized] = 1
 ;
 
 
@@ -143,6 +160,9 @@ WHEN MATCHED THEN UPDATE SET
 ;
 
 
+
+-- SELECT * FROM  [dbo].[forecast_line_item_v2] order by 1 DESC, 2 DESC
+-- SELECT * FROM  [dbo].[forecast_line_item_v2] WHERE forecast_id = 8311
 
 
 --SELECT TOP 1000

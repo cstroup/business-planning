@@ -61,7 +61,6 @@ class App:
         self.filter_bu = None
         # Full Forecast Filters
         self.filter_year_forecast = None
-        self.filter_month_forecast = None
         self.filter_dept_code_frcst = None
         self.filter_acct_number_frcst = None
         self.filter_mdt_frcst = None # main doc title
@@ -309,6 +308,9 @@ class App:
         et = "SELECT [expense_type_id], [expense_type] FROM [dbo].[vw_dropdown_expense_type] ORDER BY 2"
         self.dropdown_values['Expense Type'] = self.return_query_into_dict(et)
         
+        act = "SELECT [account_id], [account_code] FROM [dbo].[vw_dropdown_account] ORDER BY 2"
+        self.dropdown_values['Account Code'] = self.return_query_into_dict(act)
+        
         # record what options are available for the user
         conn = self.connect_to_db()
         cursor = conn.cursor()
@@ -330,8 +332,8 @@ class App:
         sdate = """
         SELECT [date_id], [full_date] 
         FROM [dbo].[vw_dropdown_date] 
-        WHERE [date_id] >= (SELECT MIN([journal_entry_date_id]) FROM [dbo].[general_ledger] WHERE [journal_entry_date_id] > 0)
-        AND [full_date] < CURRENT_TIMESTAMP
+        WHERE [full_date] >= DATEADD(day, -90, CURRENT_TIMESTAMP)
+        AND [full_date] < DATEADD(day, -1, CURRENT_TIMESTAMP)
         ORDER BY 1
         """
         self.dropdown_values['GL Start Date'] = self.return_query_into_dict(sdate)
@@ -339,7 +341,8 @@ class App:
         edate = """
         SELECT [date_id], [full_date] 
         FROM [dbo].[vw_dropdown_date] 
-        WHERE full_date <= CURRENT_TIMESTAMP
+        WHERE [full_date] >= DATEADD(day, -90, CURRENT_TIMESTAMP)
+        AND [full_date] < CURRENT_TIMESTAMP
         ORDER BY 1
         """
         self.dropdown_values['GL End Date'] = self.return_query_into_dict(edate)
@@ -468,13 +471,13 @@ class App:
             # self.login_frame.update()
             # self.create_full_forecast_table()
             
-            # Tab #4
-            self.tab_add_work_orders = ttk.Frame(self.notebook)
-            self.notebook.add(self.tab_add_work_orders, text=" Add Work Orders to Forecast ")
-            self.login_label = ttk.Label(self.login_frame, text="Building tab 4 for work orders...", background="#f0f0f0", width=min_width, anchor='center')
-            self.login_label.grid(row=3, column=0, columnspan=2, pady=2, sticky='nsew')
-            self.login_frame.update()
-            self.create_new_work_order_tab()
+            # # Tab #4
+            # self.tab_add_work_orders = ttk.Frame(self.notebook)
+            # self.notebook.add(self.tab_add_work_orders, text=" Add Work Orders to Forecast ")
+            # self.login_label = ttk.Label(self.login_frame, text="Building tab 4 for work orders...", background="#f0f0f0", width=min_width, anchor='center')
+            # self.login_label.grid(row=3, column=0, columnspan=2, pady=2, sticky='nsew')
+            # self.login_frame.update()
+            # self.create_new_work_order_tab()
             
             # Tab Admin 
             if is_admin == 1:
@@ -1701,11 +1704,6 @@ class App:
         self.tab_3_button_frame = Frame(self.tab_full_forecast, bg='#DCDAD5') # bg='#FFFFFF'
         self.tab_3_button_frame.pack(side='top', pady=5, fill='both', expand=False)
         
-        # # Refresh button
-        # refresh_button_ff = ttk.Button(self.tab_3_button_frame, text="Refresh Data", command=self.refresh_full_forecast_tab3)
-        # refresh_button_ff.pack(side='left', padx=10, pady=10, anchor='w')
-        # self.refresh_button_ff = refresh_button_ff
-        
         # Update button
         update_button_ff = ttk.Button(self.tab_3_button_frame, text="Update Forecast Item", 
                                       command=self.open_update_full_forecat_window, state="disabled")
@@ -1725,30 +1723,38 @@ class App:
         delete_forecast_li_record_button.pack(side='left', padx=75, pady=5, anchor='w')
         self.delete_forecast_li_record_button = delete_forecast_li_record_button
         
+
+
+        
+        # Create connection
+        conn = self.connect_to_db()
+        cursor = conn.cursor()
+        
+        query_actualized = """
+        SELECT
+            actualized_date
+        FROM [vw_actualized_date]
+        """
+        print(query_actualized)
+        cursor.execute(query_actualized)
+        actualized_date = cursor.fetchone()[0]
+        
+        self.actualized_label = tk.Label(self.tab_3_button_frame, text=f"Actualized: {actualized_date}", bg='#DCDAD5', anchor='e')
+        self.actualized_label.pack(side='left', padx=(5, 15), pady=5, anchor='w')
+        
         # Year Drop Down        
         self.current_year = datetime.datetime.now().year
         self.years = list(self.dropdown_values['Years'].keys())
         self.selected_year = tk.StringVar(value=str(self.current_year))
-        self.year_label_frcst = tk.Label(self.tab_3_button_frame, text="Year:", bg='#DCDAD5', anchor='e')
+        self.year_label_frcst = tk.Label(self.tab_3_button_frame, text="Viewing Year:", bg='#DCDAD5', anchor='e')
         self.year_label_frcst.pack(side='left', padx=5, pady=5, anchor='w')
         
         self.year_dropdown_frcst = ttk.Combobox(self.tab_3_button_frame, textvariable=self.selected_year,
                                                 values=self.years, width=dropdown_width)
         self.year_dropdown_frcst.pack(side='left', padx=5, pady=5, anchor='w')
         self.filter_year_forecast = self.year_dropdown_frcst.get()
-        
-        # Months Drop Down
-        self.current_month = datetime.datetime.now().month
-        self.months = list(self.dropdown_values['Months'].keys())
-        self.selected_month = tk.StringVar(value=self.months[self.current_month - 1])
-        self.month_label_frcst = tk.Label(self.tab_3_button_frame, text="Month:", bg='#DCDAD5', anchor='e')
-        self.month_label_frcst.pack(side='left', padx=5, pady=5, anchor='w')
-        
-        self.month_dropdown_frcst = ttk.Combobox(self.tab_3_button_frame, textvariable=self.selected_month,
-                                                 values=self.months, width=dropdown_width)
-        self.month_dropdown_frcst.pack(side='left', padx=5, pady=5, anchor='w')
-        self.filter_month_forecast = self.month_dropdown_frcst.get()
-        
+
+
         # Refresh button
         refresh_button_ff = ttk.Button(self.tab_3_button_frame, text="Refresh Data", command=self.refresh_full_forecast_tab3)
         refresh_button_ff.pack(side='left', padx=10, pady=5, anchor='w')
@@ -1856,10 +1862,7 @@ class App:
         SELECT DISTINCT
         	[purchase_order_number],
         	[forecast_id]
-        FROM [TEST].[dbo].[auto_tag]
-        WHERE is_deleted = 0
-        AND [purchase_order_number] IS NOT NULL
-        AND LEN([purchase_order_number]) > 0
+        FROM [vw_po_number_forecast_id]
         ORDER BY [forecast_id]
         """
         print(query_po_numbers)
@@ -2008,7 +2011,6 @@ class App:
             self.tab_3_table2_frame.destroy()
         
         self.filter_year_forecast = self.year_dropdown_frcst.get()
-        self.filter_month_forecast = self.month_dropdown_frcst.get()
             
         self.tab_3_table2_frame = Frame(self.tab_full_forecast, bg='#DCDAD5') # bg='#FFFFFF'
         self.tab_3_table2_frame.pack(side='bottom', pady=5, fill='both', expand=False)
@@ -2022,7 +2024,7 @@ class App:
         var_prev_year = var_cur_year - 1
         
         query_forecast_line_item = f"""
-        EXEC [dbo].[sp_select_full_forecast_metrics] {self.filter_year_forecast}, '{self.filter_month_forecast}';
+        EXEC [dbo].[sp_select_full_forecast_metrics] {self.filter_year_forecast};
         """
         print(query_forecast_line_item)
         cursor.execute(query_forecast_line_item)
@@ -2244,7 +2246,7 @@ class App:
             var_prev_year = var_cur_year - 1
             
             query = f"""
-            EXEC [dbo].[sp_select_full_forecast_and_items_for_update] {self.ff_id}, {self.filter_year_forecast}, '{self.filter_month_forecast}';
+            EXEC [dbo].[sp_select_full_forecast_and_items_for_update] {self.ff_id}, {self.filter_year_forecast};
             """.lstrip('\t')
             print(query)
             
@@ -2470,8 +2472,9 @@ class App:
             # update tables
             self.create_full_forecast_table_tab3()
             self.create_forecast_line_item_table_tab3()
+            self.create_filtered_forecast_table_tab_4()
             
-            tk.messagebox.showinfo("Success", "Record added successfully!")
+            tk.messagebox.showinfo("Success", "Record successfully updated!")
             
         except Exception as e:
             msg = str(e)
@@ -2514,7 +2517,7 @@ class App:
             var_prev_year = var_cur_year - 1
             
             query = f"""
-            EXEC [dbo].[sp_select_full_forecast_and_items] {self.ff_id}, {self.filter_year_forecast}, '{self.filter_month_forecast}';
+            EXEC [dbo].[sp_select_full_forecast_and_items] {self.ff_id}, {self.filter_year_forecast};
             """.lstrip('\t')
             print(query)
             
@@ -2606,15 +2609,15 @@ class App:
     
     
     def save_insert_full_forecast_data(self, entry_fields):
-        # Get the values from the entry boxes
-        for i, widget in enumerate(entry_fields):
-            # Check if the widget is an Entry or a Combobox
-            if isinstance(widget, ttk.Entry) or isinstance(widget, ttk.Combobox):
-                print(str(i) + ": " + str(widget.get()))
-            elif isinstance(widget, tk.Text):
-                print(str(i) + ": " + widget.get("1.0", tk.END).strip())  # Trim whitespace from the end
+        # # Get the values from the entry boxes
+        # for i, widget in enumerate(entry_fields):
+        #     # Check if the widget is an Entry or a Combobox
+        #     if isinstance(widget, ttk.Entry) or isinstance(widget, ttk.Combobox):
+        #         print(str(i) + ": " + str(widget.get()))
+        #     elif isinstance(widget, tk.Text):
+        #         print(str(i) + ": " + widget.get("1.0", tk.END).strip())  # Trim whitespace from the end
 
-        print(list(self.dropdown_values.keys()))
+        # print(list(self.dropdown_values.keys()))
         
         # _value = self.dropdown_values[''][entry_fields[].get()]
         # _value = entry_fields[17].get() or ''
@@ -2740,6 +2743,7 @@ class App:
 
             self.create_full_forecast_table_tab3()
             self.create_forecast_line_item_table_tab3()
+            self.create_filtered_forecast_table_tab_4()
             
             tk.messagebox.showinfo("Success", "Record added successfully!")
             
@@ -2792,6 +2796,16 @@ class App:
         
     # Get the data from the treeview and write it to a CSV file
     def export_csv_full_forecast(self):
+        # Retrieve the values from the input fields
+        filter_dict = {}
+        filter_dict['Year'] = self.filter_year_forecast
+        filter_dict['Department Code'] = self.department_code_input_frcst.get().lower()
+        filter_dict['Account Code'] =  self.account_number_input_frcst.get().lower()
+        filter_dict['Main Doc Title'] = self.mdt_input_frcst.get().lower()
+        filter_dict['Supplier'] = self.supplier_input_frcst.get().lower()
+        filter_dict['Description'] = self.desc_input_frcst.get().lower()
+        filter_dict['PO Number'] = self.po_input_frcst.get().lower()
+        
         current_date = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
         # Open a file dialog to let the user choose where to save the CSV file
         file_types = [('CSV files', '*.csv'), ('Text files', '*.txt'), ('All files', '*.*')]
@@ -2815,7 +2829,7 @@ class App:
             
             cursor.execute(f"""
             INSERT INTO [audit].[user_actions] ([action_type], [action_sql]) 
-            VALUES ('export_csv_full_forecast', '{file_path}')
+            VALUES ('export_csv_full_forecast', '{file_path} | {filter_dict}')
             """)
             conn.commit()
        
@@ -2871,10 +2885,9 @@ class App:
         self.tab_4_add_wo_to_forecast_button = tab_4_add_wo_to_forecast_button
         
         
-        
         # Edit Forecast Item
         find_forecast_from_wo_button = ttk.Button(self.tab_4_bottom_buttons_frame, text="Edit Forecast Record", 
-                                                  command=self.open_window_filtered_forecast_record, state="disabled")
+                                                  command=self.open_update_filtered_forecat_window, state="disabled")
         find_forecast_from_wo_button.pack(side='right', padx=5, pady=5, anchor='e', expand=False)
         self.find_forecast_from_wo_button = find_forecast_from_wo_button
         
@@ -3435,9 +3448,261 @@ class App:
         
         
         
-    def open_window_filtered_forecast_record(self):
-        pass
-    
+    def open_update_filtered_forecat_window(self):     
+        try:            
+            # screen_width = self.master.winfo_screenwidth() | screen_height = self.master.winfo_screenheight()
+            self.update_filtered_forecast_window = tk.Toplevel(self.master)
+            # height = self.master.winfo_screenheight() - 100
+            # self.update_full_forecast_window.geometry(f"1200x{height}+10+10")
+            self.update_filtered_forecast_window.geometry("1200x900+10+10")
+            self.update_filtered_forecast_window.title(f"Update Forecast ID: {self.ff_id}")
+            
+            # Create a canvas and add a scrollbar to it
+            canvas = tk.Canvas(self.update_filtered_forecast_window)
+            scrollbar = ttk.Scrollbar(self.update_filtered_forecast_window, orient="vertical", command=canvas.yview)
+            scrollbar.pack(side="right", fill="y")
+            canvas.pack(side="left", fill="both", expand=True)
+            canvas.configure(yscrollcommand=scrollbar.set)
+            canvas.bind('<Configure>', lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+            
+            inner_frame = tk.Frame(canvas)
+            canvas.create_window((0, 0), window=inner_frame, anchor="nw")
+            
+            # Bind the scrollwheel event to the canvas
+            canvas.bind_all('<MouseWheel>', lambda event: canvas.yview_scroll(int(-1*(event.delta/120)), "units"))
+            
+            conn = self.connect_to_db()
+            cursor = conn.cursor()
+            
+            # get the variables for current year and previous year
+            # this is based on the year of filter dropdown
+            var_cur_year = int(str(self.filter_year_forecast)[-2:])
+            var_prev_year = var_cur_year - 1
+            
+            query = f"""
+            EXEC [dbo].[sp_select_full_forecast_and_items_for_update] {self.ff_id}, {self.filter_year_forecast};
+            """.lstrip('\t')
+            print(query)
+            
+            cursor.execute(f"""
+            INSERT INTO [audit].[user_actions] ([action_type], [action_sql]) 
+            VALUES ('open_update_filtered_forecat_window', '{query.replace("'", "''")}')
+            """)
+            conn.commit()
+            cursor.execute(query)
+            row = cursor.fetchone()
+            # print(row)
+            
+            # fetch the column headers from the cursor description
+            self.forecast_update_filtered_column_headers = [
+                column[0].replace("{current_year}", f"{var_cur_year}").replace("{prev_year}", f"{var_prev_year}")
+                for column in cursor.description
+            ]
+            
+            # print(self.forecast_update_column_headers)
+            
+            # all fields will be editable
+            editable_fields = self.forecast_update_filtered_column_headers
+            
+            # Create prepopulated text boxes
+            entry_fields = []
+                                
+            halfway_point = math.ceil(len(self.forecast_update_filtered_column_headers) / 2)
+                        
+            for i, (column_name, value) in enumerate(zip(self.forecast_update_filtered_column_headers, row)):
+                # print(str(column_name) + ": " + str(value) + f" {type(value)}")
+                # Create spacer after your inner_frame definition
+                spacer = tk.Label(inner_frame, width=20)
+                spacer.grid(row=0, column=2, rowspan=halfway_point, sticky="ns")
+                            
+                # then in your loop, increment label_column and entry_column by 1 when i >= halfway_point
+                if i < halfway_point:
+                    # Place the first half of the fields in columns 0 and 1
+                    label_column = 0
+                    entry_column = 1
+                    grid_row = i
+                else:
+                    # Place the second half of the fields in columns 3 and 4
+                    label_column = 3
+                    entry_column = 4
+                    grid_row = i - halfway_point
+                            
+                label = ttk.Label(inner_frame, text=column_name, background='#F0F0F0')
+                label.grid(row=grid_row, column=label_column, padx=5, pady=5, sticky="w")
+                            
+                # big text field for comments
+                if column_name == "Comment":
+                    entry = tk.Text(inner_frame, wrap='word', height=5, width=50)
+                    entry.insert('1.0', value or "")  # Insert value or empty string as placeholder text
+                            
+                # values from dropdown_value_keys dictionary
+                # only show dropdowns for editible fields, otherwise show a disabled input text field
+                elif column_name in self.dropdown_value_keys and column_name in editable_fields:
+                    keys = [str(key) for key in self.dropdown_values[column_name].keys()]
+                    if str(value) in keys:
+                        default_value = str(value)
+                    else:
+                        default_value = keys[0] if keys else ''
+                    entry = ttk.Combobox(inner_frame, values=keys, width=40, height=20)  # don't use var as the textvariable
+                    entry.set(default_value)  # set the Combobox value directly
+                                
+                # default to input fields
+                else:
+                    entry = ttk.Entry(inner_frame, width=50)
+                    entry.insert(0, value or "")  # Insert value or empty string as placeholder text
+                            
+                entry.grid(row=grid_row, column=entry_column, padx=5, pady=5, sticky="w")
+                # Only make certain inputs available
+                if column_name in editable_fields and column_name != 'Forecast ID': # in the editable fields list
+                    inner_frame.grid_rowconfigure(i)
+                else:
+                    entry.configure(state="disabled") # disable the rest
+                                
+                entry_fields.append(entry)
+                        
+            # Create a button to save the updates
+            save_button = ttk.Button(inner_frame, text="Save", command=lambda: self.save_update_filtered_forecast_data(entry_fields))
+            save_button.grid(row=len(entry_fields), column=entry_column, padx=5, pady=5, sticky="e")
+            
+            # Update the canvas scrollregion
+            inner_frame.update_idletasks()
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        except Exception as e:
+            msg = str(e)
+            print('Failed: '+ str(msg))
+            tk.messagebox.showinfo("Failed", f"Error! {msg}")
+            
+            
+    def save_update_filtered_forecast_data(self, entry_fields):
+        cc_value = self.dropdown_values['Company Code'][entry_fields[1].get()] # company code
+        bu_value = self.dropdown_values['Business Unit'][entry_fields[2].get()] # entry_fields[15].get() or '' # business unit value
+        dept_value = self.dropdown_values['Department'][entry_fields[3].get()]
+        ccc_value = self.dropdown_values['Cost Center Code'][entry_fields[4].get()] # cost center code
+        department_leader_value = entry_fields[4].get().replace("'", "''") or ''
+        team_leader_value = entry_fields[6].get().replace("'", "''") or ''
+        business_owner_value = entry_fields[7].get().replace("'", "''") or ''
+        primary_contact_value = entry_fields[8].get().replace("'", "''") or ''
+        supplier_value = entry_fields[9].get().replace("'", "''") or ''
+        contractor_value = entry_fields[10].get().replace("'", "''") or ''
+        worker_id_value = entry_fields[11].get().replace("'", "''") or ''
+        pid_value = entry_fields[12].get().replace("'", "''") or ''
+        worker_start_date = self.dropdown_values['Worker Start Date'][entry_fields[13].get()]
+        worker_end_date = self.dropdown_values['Worker End Date'][entry_fields[14].get()]
+        override_end_date = self.dropdown_values['Override End Date'][entry_fields[15].get()]
+        main_doc_title_value = entry_fields[16].get().replace("'", "''") or ''
+        coc_value = entry_fields[17].get().replace("'", "''") or '' # cost object code
+        site_value = self.dropdown_values['Location'][entry_fields[18].get()]
+        account_value = entry_fields[19].get().replace("'", "''") or ''
+        work_type_value = self.dropdown_values['Work Type'][entry_fields[20].get()]
+        worker_status_value = self.dropdown_values['Worker Status'][entry_fields[21].get()]
+        wo_category_value = self.dropdown_values['Work Order Category'][entry_fields[22].get()]
+        exp_class_value = self.dropdown_values['Expense Classification'][entry_fields[23].get()]
+        budget_code_value = entry_fields[24].get().replace("'", "''") or ''
+        seg_value = self.dropdown_values['Segmentation'][entry_fields[25].get()]
+        plat_value = self.dropdown_values['Platform'][entry_fields[26].get()]
+        fun_value = self.dropdown_values['Function'][entry_fields[27].get()]
+        ss_value = self.dropdown_values['Support/Scalable'][entry_fields[28].get()]
+        wo_id_value = entry_fields[29].get().replace("'", "''") or '' # work order id
+        desc_value = entry_fields[30].get().replace("'", "''") or ''
+        allocation_value = entry_fields[31].get().replace("'", "''") or ''
+        br_hr_value = entry_fields[32].get().replace("'", "''") or ''
+        br_day_value = entry_fields[33].get().replace("'", "''") or ''
+        comment_value = entry_fields[34].get("1.0", tk.END).strip().replace("'", "''") or '' # comment value 
+        jan_value = entry_fields[35].get().replace("'", "''") or ''
+        feb_value = entry_fields[36].get().replace("'", "''") or ''
+        mar_value = entry_fields[37].get().replace("'", "''") or ''
+        apr_value = entry_fields[38].get().replace("'", "''") or ''
+        may_value = entry_fields[39].get().replace("'", "''") or ''
+        jun_value = entry_fields[40].get().replace("'", "''") or ''
+        jul_value = entry_fields[41].get().replace("'", "''") or ''
+        aug_value = entry_fields[42].get().replace("'", "''") or ''
+        sep_value = entry_fields[43].get().replace("'", "''") or ''
+        oct_value = entry_fields[44].get().replace("'", "''") or ''
+        nov_value = entry_fields[45].get().replace("'", "''") or ''
+        dec_value = entry_fields[46].get().replace("'", "''") or ''
+
+        try:
+            # Create connection
+            conn = self.connect_to_db()
+            cursor = conn.cursor()
+            
+            query = f"""
+            EXEC [dbo].[sp_update_full_forecast_and_items]
+                 {self.ff_id}, -- forecast id
+                 {self.filter_year_forecast}, -- year
+                '{cc_value}', -- company code
+                '{bu_value}', -- business unit
+                '{dept_value}', -- department
+                '{ccc_value}', -- cost center code
+                '{department_leader_value}', -- department leader
+                '{team_leader_value}', -- team leader
+                '{business_owner_value}', -- business owner
+                '{primary_contact_value}', -- primary contact
+                '{supplier_value}', -- supplier
+                '{contractor_value}', -- contractor
+                '{worker_id_value}', -- worker id
+                '{pid_value}', -- pid
+                '{worker_start_date}', -- start date
+                '{worker_end_date}', -- end date 
+                '{override_end_date}', -- override date
+                '{main_doc_title_value}', -- main doc
+                '{coc_value}', -- cost object code
+                '{site_value}', -- location/site
+                '{account_value}', -- account code
+                '{work_type_value}', -- work type
+                '{worker_status_value}', -- worker status
+                '{wo_category_value}', -- work order category
+                '{exp_class_value}', -- expense class 
+                '{budget_code_value}', -- budget code
+                '{seg_value}', -- segmentation
+                '{plat_value}', -- platform
+                '{fun_value}', -- function
+                '{ss_value}', -- support/scalable
+                '{wo_id_value}', -- work order id
+                '{desc_value}', -- description
+                '{allocation_value}', -- allocation
+                '{br_hr_value}', -- bill rate hr
+                '{br_day_value}', -- bill rate day
+                '{comment_value}', -- comment
+                '{jan_value}', -- jan
+                '{feb_value}', -- feb
+                '{mar_value}', -- mar
+                '{apr_value}', -- apr
+                '{may_value}', -- may
+                '{jun_value}', -- jun
+                '{jul_value}', -- jul
+                '{aug_value}', -- aug
+                '{sep_value}', -- sep
+                '{oct_value}', -- oct
+                '{nov_value}', -- nov
+                '{dec_value}' -- dec
+            """
+            print(str(query).replace("'", "''"))
+            
+            cursor.execute(f"""
+            INSERT INTO [audit].[user_actions] ([action_type], [action_sql]) 
+            VALUES ('save_update_filtered_forecast_data', '{str(query).replace("'", "''")}')
+            """)
+            conn.commit()
+        
+            # Insert the record into the database
+            cursor.execute(query)
+            conn.commit()
+            
+            # Close the update window
+            self.update_filtered_forecast_window.destroy()
+            
+            # update tables
+            self.create_full_forecast_table_tab3()
+            self.create_forecast_line_item_table_tab3()
+            self.create_filtered_forecast_table_tab_4()
+            
+            tk.messagebox.showinfo("Success", "Record successfully updated!")
+            
+        except Exception as e:
+            msg = str(e)
+            print('Failed: '+ str(msg))
+            tk.messagebox.showinfo("Failed", f"Error! {msg}")
     
     #####################
     ##### ADMIN TAB #####
@@ -3450,15 +3715,18 @@ class App:
         server_options = ["business-planning-proxy.spectrumtoolbox.com", "VM0PWDCRPTD0001"]
         self.server_var = tk.StringVar()
         self.server_var.set(server_options[0])
-        self.server_option = ttk.Combobox(self.admin_frame, textvariable=self.server_var, values=server_options, width=30, height=20)
-        #self.server_option.configure(state="disabled")
-        self.server_option.grid(row=0, column=1, padx=5, pady=10, sticky='w')
+        self.server_option = ttk.Combobox(self.admin_frame, textvariable=self.server_var, values=server_options, width=40, height=20)
+        self.server_option.configure(state="disabled")
+        self.server_option.grid(row=0, column=1, padx=5, pady=5, sticky='w')
         
         tk.Label(self.admin_frame, text="Database Name:", anchor='w', bg='#DCDAD5').grid(row=1, column=0, padx=5, pady=10, sticky='w')
         db_options = ["Compiler", "EID", "PLANNING_APP", "TEST"]
-        self.db_var = tk.StringVar(value=db_options[3])
+        if self.database_name in db_options:
+            self.db_var = tk.StringVar(value=self.database_name)
+        else:
+            self.db_var = tk.StringVar(value=db_options[3])
         self.db_option = ttk.Combobox(self.admin_frame, textvariable=self.db_var, values=db_options, width=30, height=20)
-        self.db_option.grid(row=1, column=1, padx=5, pady=10, sticky='w')
+        self.db_option.grid(row=1, column=1, padx=5, pady=5, sticky='w')
         
         # Add a separator
         ttk.Separator(self.admin_frame, orient='horizontal').grid(row=4, column=0, columnspan=10, sticky='we', padx=20, pady=20)
@@ -3468,54 +3736,58 @@ class App:
         self.upload_button = ttk.Button(self.admin_frame, text="Upload Files", 
                                         command=self.upload_files,
                                         style="Important.TButton")
-        self.upload_button.grid(row=5, column=0, padx=5, pady=20, sticky='wns')
+        self.upload_button.grid(row=5, column=0, padx=5, pady=5, sticky='wns')
         self.upload_label = tk.Label(self.admin_frame, text="", anchor='w', bg=self.admin_frame["bg"])
-        self.upload_label.grid(row=5, column=1, columnspan=4, padx=5, pady=20, sticky='wns')
+        self.upload_label.grid(row=5, column=1, columnspan=4, padx=5, pady=5, sticky='wns')
         
         
-        # TIMESHEETS FILE
-        tk.Label(self.admin_frame, text="Allocation Timesheets File", bg=self.admin_frame["bg"]).grid(row=6, column=0, padx=5, pady=5, sticky='wns')
-        
-        # Create the "Select File" button and file path label
-        self.select_timesheets_button = ttk.Button(self.admin_frame, text="Browse CSV", 
-                                                  command=self.select_timesheets_file,
-                                                  style="TButton")
-        self.select_timesheets_button.grid(row=6, column=1, padx=5, pady=5, sticky='w')
-    
-        self.timesheets_label = tk.Label(self.admin_frame, text=" ", anchor='w', width=70, bg=self.admin_frame["bg"])
-        self.timesheets_label.grid(row=6, column=2, columnspan=4, padx=5, pady=(5, 20), sticky='wns')
-        
-        
-        # CONTRACTOR DETAILS
-        tk.Label(self.admin_frame, text="Contractor Details File", bg=self.admin_frame["bg"]).grid(row=8, column=0, padx=5, pady=5, sticky='wns')
+        # GENERAL LEDGER MANUAL FILE
+        tk.Label(self.admin_frame, text="General Ledger File", bg=self.admin_frame["bg"]).grid(row=6, column=0, padx=5, pady=5, sticky='wns')
         
         # Create the "Select File" button and file path label
-        self.select_contractors_button = ttk.Button(self.admin_frame, text="Browse Excel", 
-                                                  command=self.select_contractor_details,
+        self.select_gl_button = ttk.Button(self.admin_frame, text="Browse Excel",  
+                                                  command=self.select_gl_file,
                                                   style="TButton")
-        self.select_contractors_button.grid(row=8, column=1, padx=5, pady=5, sticky='w')
+        self.select_gl_button.grid(row=6, column=1, padx=5, pady=5, sticky='w')
     
-        self.contractors_label = tk.Label(self.admin_frame, text=" ", anchor='w', width=70, bg=self.admin_frame["bg"])
-        self.contractors_label.grid(row=8, column=2, columnspan=4, padx=5, pady=(5, 20), sticky='wns')
+        self.gl_label = tk.Label(self.admin_frame, text=" ", anchor='w', width=70, bg=self.admin_frame["bg"])
+        self.gl_label.grid(row=6, column=2, columnspan=4, padx=5, pady=(5, 5), sticky='wns')
         
         
-        # KEACH'S HR REPORT
-        tk.Label(self.admin_frame, text="Keach HR File", bg=self.admin_frame["bg"]).grid(row=10, column=0, padx=5, pady=5, sticky='wns')
+        # # CONTRACTOR DETAILS
+        # tk.Label(self.admin_frame, text="Contractor Details File", bg=self.admin_frame["bg"]).grid(row=8, column=0, padx=5, pady=5, sticky='wns')
         
-        # Create the "Select File" button and file path label
-        self.select_hr_button = ttk.Button(self.admin_frame, text="Browse Excel", 
-                                                  command=self.select_keach_hr,
-                                                  style="TButton")
-        self.select_hr_button.grid(row=10, column=1, padx=5, pady=5, sticky='w')
+        # # Create the "Select File" button and file path label
+        # self.select_contractors_button = ttk.Button(self.admin_frame, text="Browse Excel", 
+        #                                           command=self.select_contractor_details,
+        #                                           style="TButton")
+        # self.select_contractors_button.grid(row=8, column=1, padx=5, pady=5, sticky='w')
     
-        self.keach_hr_label = tk.Label(self.admin_frame, text=" ", anchor='w', width=70, bg=self.admin_frame["bg"])
-        self.keach_hr_label.grid(row=10, column=2, columnspan=4, padx=5, pady=(5, 20), sticky='wns')
+        # self.contractors_label = tk.Label(self.admin_frame, text=" ", anchor='w', width=70, bg=self.admin_frame["bg"])
+        # self.contractors_label.grid(row=8, column=2, columnspan=4, padx=5, pady=(5, 20), sticky='wns')
+        
+        
+        # # KEACH'S HR REPORT
+        # tk.Label(self.admin_frame, text="Keach HR File", bg=self.admin_frame["bg"]).grid(row=10, column=0, padx=5, pady=5, sticky='wns')
+        
+        # # Create the "Select File" button and file path label
+        # self.select_hr_button = ttk.Button(self.admin_frame, text="Browse Excel", 
+        #                                           command=self.select_keach_hr,
+        #                                           style="TButton")
+        # self.select_hr_button.grid(row=10, column=1, padx=5, pady=5, sticky='w')
+    
+        # self.keach_hr_label = tk.Label(self.admin_frame, text=" ", anchor='w', width=70, bg=self.admin_frame["bg"])
+        # self.keach_hr_label.grid(row=10, column=2, columnspan=4, padx=5, pady=(5, 20), sticky='wns')
                 
+
                 
     def insert_dataframe_to_sql_server(self, df, schema, table, batch_size, truncate_table='N'):
         """
         Inserts a Pandas DataFrame into a SQL Server database table using a custom batch size.
-        SQL Server is limited to only 1,000 rows at a time
+        SQL Server is limited to only 1,000 rows at a time.
+        
+        Additionally, there is a check of column headers to ensure data ingestion is proper or else
+        it will error out.
     
         Args:
             df (pd.DataFrame): DataFrame to be inserted.
@@ -3535,6 +3807,43 @@ class App:
         
         conn = self.connect_to_db()
         cursor = conn.cursor()
+        
+        db_col_headers_query = f"""
+        SELECT 
+            TABLE_CATALOG, 
+            TABLE_SCHEMA, 
+            TABLE_NAME, 
+            COLUMN_NAME, 
+            ORDINAL_POSITION,
+            DATA_TYPE, 
+            IS_NULLABLE 
+        FROM 
+            INFORMATION_SCHEMA.COLUMNS 
+        WHERE 
+            TABLE_CATALOG = '{self.database_name}'
+            AND TABLE_SCHEMA = '{schema}' 
+            AND TABLE_NAME = '{table}'
+        ORDER BY ORDINAL_POSITION	
+        """
+        print(db_col_headers_query)
+        cursor.execute(db_col_headers_query)
+        data = cursor.fetchall()
+        
+        db_col_headers = []
+        
+        for i in data:
+            db_col_headers.append(i[3])
+            
+        df_col_headers = df.columns.tolist()
+        
+        print(f"{self.database_name}.{schema}.{table} column headers: {str(db_col_headers)}")
+        print(f"File Headers: {str(df_col_headers)}")
+        
+        if db_col_headers != df_col_headers:
+            msg_1 = f"{self.database_name}.{schema}.{table} column headers:\n{str(db_col_headers)}"
+            msg_2 = f"File Headers:\n{str(df_col_headers)}"
+            raise ValueError(f"Column headers in the DataFrame do not match with the database. Operation aborted.\n\n{msg_1}\n\n{msg_2}")
+
         
         if truncate_table == 'Y':
             # Build & Execute SQL TRUNCATE statement
@@ -3582,15 +3891,19 @@ class App:
                 conn.commit()
                 print('Successfully uploaded: ' + str(df_chunk_len) + ' record(s)')
             except Exception as e:
-                print('Failed: '+ str(e))
+                msg = str(e)
+                print(f"Failed: {msg}")
+                tk.messagebox.showerror("Error", f"There was an error! {msg}") 
                 
             rows_inserted += df_chunk_len
             counter -= df_chunk_len
-            info_label = f"For table {schema}.{table}: {rows_inserted} of {df_len}"
+            info_label = f"For table {schema.upper()}.{table.upper()}: {rows_inserted} of {df_len}"
             self.upload_label = tk.Label(self.admin_frame, text=f"{info_label}", anchor='w', width=100)
             self.upload_label.grid(row=5, column=1, columnspan=5, padx=5, pady=20, sticky='w')
             self.admin_frame.update()
             print('Records left: ' + str(counter) + ' Rows Inserted: ' + str(rows_inserted) + '\n')
+            
+            
             
             
     # def insert_dataframe_to_sql_server(self, df, schema, table, batch_size, truncate_table='N'):
@@ -3642,79 +3955,101 @@ class App:
         except Exception as e:
             print("An error occurred while importing the Excel file:", e)
             
-            
-            
-    def select_timesheets_file(self):
-        
-        self.timesheets_file_path = filedialog.askopenfilename(filetypes=[("CSV Files", "*.csv")])
-        print(f"Timesheets File Path: {self.timesheets_file_path}")
-        
-        # If the user didn't select a file, do nothing
-        if not self.timesheets_file_path:
-            pass
-        else:
-            try:
-                self.timesheets_label.config(text=self.timesheets_file_path)
-            
-            except Exception as e:
-                print('Failed: '+ str(e))
-                tk.messagebox.showerror("Error", "There was an error with the upload!") 
-            
-            
-    def select_contractor_details(self):
     
-        self.contractor_details_file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx;*.xls")])
-        print(f"Contractor Details File Path: {self.contractor_details_file_path}")
+    def select_gl_file(self):
+        self.gl_file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx;*.xls")])
+        print(f"General Ledger File Path: {self.gl_file_path}")
         
         # If the user didn't select a file, do nothing
-        if not self.contractor_details_file_path:
+        if not self.gl_file_path:
             pass
         else:
             try:
-                self.contractors_label.config(text=self.contractor_details_file_path)
-            
+                self.gl_label.config(text=self.gl_file_path)
             except Exception as e:
                 print('Failed: '+ str(e))
                 tk.messagebox.showerror("Error", "There was an error with the upload!") 
             
             
-    def select_keach_hr(self):
+            
+    # def select_timesheets_file(self):
+        
+    #     self.timesheets_file_path = filedialog.askopenfilename(filetypes=[("CSV Files", "*.csv")])
+    #     print(f"Timesheets File Path: {self.timesheets_file_path}")
+        
+    #     # If the user didn't select a file, do nothing
+    #     if not self.timesheets_file_path:
+    #         pass
+    #     else:
+    #         try:
+    #             self.timesheets_label.config(text=self.timesheets_file_path)
+            
+    #         except Exception as e:
+    #             print('Failed: '+ str(e))
+    #             tk.messagebox.showerror("Error", "There was an error with the upload!") 
+            
+            
+    # def select_contractor_details(self):
     
-        self.keach_hr_file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx;*.xls")])
-        print(f"Keach's HR File Path: {self.keach_hr_file_path}")
+    #     self.contractor_details_file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx;*.xls")])
+    #     print(f"Contractor Details File Path: {self.contractor_details_file_path}")
         
-        # If the user didn't select a file, do nothing
-        if not self.keach_hr_file_path:
-            pass
-        else:
-            try:
-                self.keach_hr_label.config(text=self.keach_hr_file_path)
+    #     # If the user didn't select a file, do nothing
+    #     if not self.contractor_details_file_path:
+    #         pass
+    #     else:
+    #         try:
+    #             self.contractors_label.config(text=self.contractor_details_file_path)
             
-            except Exception as e:
-                print('Failed: '+ str(e))
-                tk.messagebox.showerror("Error", "There was an error with the upload!") 
+    #         except Exception as e:
+    #             print('Failed: '+ str(e))
+    #             tk.messagebox.showerror("Error", "There was an error with the upload!") 
+            
+            
+    # def select_keach_hr(self):
+    
+    #     self.keach_hr_file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx;*.xls")])
+    #     print(f"Keach's HR File Path: {self.keach_hr_file_path}")
+        
+    #     # If the user didn't select a file, do nothing
+    #     if not self.keach_hr_file_path:
+    #         pass
+    #     else:
+    #         try:
+    #             self.keach_hr_label.config(text=self.keach_hr_file_path)
+            
+    #         except Exception as e:
+    #             print('Failed: '+ str(e))
+    #             tk.messagebox.showerror("Error", "There was an error with the upload!") 
             
 
     def upload_files(self):
-                
+        
         try:
-            if self.timesheets_file_path:
-                self.insert_dataframe_to_sql_server(self.flat_file_to_dataframe(self.timesheets_file_path, 
-                                                                                delim='|', display_df='N'),
-                                                   'SHARE', 'BusPlanAllocationsTimesheets',
-                                                   batch_size=1000, truncate_table='Y')
-                
-            if self.contractor_details_file_path:
-                self.insert_dataframe_to_sql_server(self.excel_file_to_dataframe(self.contractor_details_file_path, 
-                                                                                skiprows=1, skipfooter=3, display_df='N'),
-                                                   'SHARE', 'BusPlanContractorDetails',
-                                                   batch_size=1000, truncate_table='Y')
-                
-            if self.keach_hr_file_path:
-                self.insert_dataframe_to_sql_server(self.excel_file_to_dataframe(self.keach_hr_file_path, 
+        
+            if self.gl_file_path:
+                self.insert_dataframe_to_sql_server(self.excel_file_to_dataframe(self.gl_file_path, 
                                                                                 skiprows=0, skipfooter=0, display_df='N'),
-                                                   'SHARE', 'BusPlanContractorActiveRpt',
-                                                   batch_size=1000, truncate_table='Y')
+                                                    'staging', 'sap_general_ledger',
+                                                    batch_size=1000, truncate_table='Y')
+                
+        #     if self.timesheets_file_path:
+        #         self.insert_dataframe_to_sql_server(self.flat_file_to_dataframe(self.timesheets_file_path, 
+        #                                                                         delim='|', display_df='N'),
+        #                                            'SHARE', 'BusPlanAllocationsTimesheets',
+        #                                            batch_size=1000, truncate_table='Y')
+                
+            # if self.contractor_details_file_path:
+            #     self.insert_dataframe_to_sql_server(self.excel_file_to_dataframe(self.contractor_details_file_path, 
+            #                                                                     skiprows=1, skipfooter=3, display_df='N'),
+            #                                        'SHARE', 'BusPlanContractorDetails',
+            #                                        batch_size=1000, truncate_table='Y')
+                
+            # if self.keach_hr_file_path:
+            #     self.insert_dataframe_to_sql_server(self.excel_file_to_dataframe(self.keach_hr_file_path, 
+            #                                                                     skiprows=0, skipfooter=0, display_df='N'),
+            #                                        'SHARE', 'BusPlanContractorActiveRpt',
+            #                                        batch_size=1000, truncate_table='Y')
                 
             self.upload_label = tk.Label(self.admin_frame, text="Completed!", anchor='w', width=100)
             self.upload_label.grid(row=5, column=1, columnspan=5, padx=5, pady=20, sticky='w')

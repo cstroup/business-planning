@@ -80,21 +80,21 @@ CREATE INDEX idx_forecast_support_scalable_id ON [dbo].[forecast] ([support_scal
 
 
 
-DROP TABLE IF EXISTS [dbo].[forecast_line_item];
-CREATE TABLE [dbo].[forecast_line_item](
-	[forecast_line_item_id] [bigint] IDENTITY(1000,1) NOT NULL,
-	[forecast_id] [bigint] NOT NULL,
-	[date_id] [bigint] NOT NULL,
-	[amount] [decimal](20, 2) NOT NULL DEFAULT 0,
-	[is_actual] [bit] NULL DEFAULT 0,
-	[is_deleted] [bit] NULL DEFAULT 0,
-	[created_by] [nvarchar](100) NOT NULL DEFAULT CURRENT_USER,
-	[created_date] DATETIME DEFAULT GETDATE(),
-	[updated_by] [nvarchar](100) NOT NULL DEFAULT CURRENT_USER,
-	[updated_date] DATETIME DEFAULT GETDATE(),
-) ON [PRIMARY]
-CREATE INDEX idx_forecast_line_item_forecast_id ON [dbo].[forecast_line_item] ([forecast_id]);
-CREATE INDEX idx_forecast_line_item_date_id ON [dbo].[forecast_line_item] ([date_id]);
+--DROP TABLE IF EXISTS [dbo].[forecast_line_item];
+--CREATE TABLE [dbo].[forecast_line_item](
+--	[forecast_line_item_id] [bigint] IDENTITY(1000,1) NOT NULL,
+--	[forecast_id] [bigint] NOT NULL,
+--	[date_id] [bigint] NOT NULL,
+--	[amount] [decimal](20, 2) NOT NULL DEFAULT 0,
+--	[is_actual] [bit] NULL DEFAULT 0,
+--	[is_deleted] [bit] NULL DEFAULT 0,
+--	[created_by] [nvarchar](100) NOT NULL DEFAULT CURRENT_USER,
+--	[created_date] DATETIME DEFAULT GETDATE(),
+--	[updated_by] [nvarchar](100) NOT NULL DEFAULT CURRENT_USER,
+--	[updated_date] DATETIME DEFAULT GETDATE(),
+--) ON [PRIMARY]
+--CREATE INDEX idx_forecast_line_item_forecast_id ON [dbo].[forecast_line_item] ([forecast_id]);
+--CREATE INDEX idx_forecast_line_item_date_id ON [dbo].[forecast_line_item] ([date_id]);
 
 
 
@@ -104,12 +104,16 @@ CREATE TABLE [dbo].[forecast_line_item_v2](
 	[forecast_id] bigint NOT NULL,
 	[date_id] bigint NOT NULL,
 	[amount] decimal(20,2) NOT NULL DEFAULT 0, -- the same as forecast?
+	[forecast] decimal(20,2) NOT NULL DEFAULT 0,
 	[budget] decimal(20,2) NOT NULL DEFAULT 0,
 	[q1f] decimal(20,2) NOT NULL DEFAULT 0,
 	[q2f] decimal(20,2) NOT NULL DEFAULT 0,
 	[q3f] decimal(20,2) NOT NULL DEFAULT 0,
+	[forecast_spring] decimal(20,2) NOT NULL DEFAULT 0,
+	[forecast_summer] decimal(20,2) NOT NULL DEFAULT 0,
 	[actual] decimal(20,2) NOT NULL DEFAULT 0,
 	[is_deleted] bit DEFAULT 0,
+	[is_actualized] bit DEFAULT 0,
 	[created_by] [nvarchar](100) NOT NULL DEFAULT CURRENT_USER,
 	[created_date] DATETIME DEFAULT GETDATE(),
 	[updated_by] [nvarchar](100) NOT NULL DEFAULT CURRENT_USER,
