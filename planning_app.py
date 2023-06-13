@@ -16,6 +16,7 @@ import tkinter.font as font
 import datetime as dt
 import pandas as pd
 import math
+import os
 # import numpy as np
 import datetime
 # import time
@@ -23,6 +24,7 @@ import datetime
 # import customtkinter ## need to figure this out
 from tkinter import ttk
 from tkinter import Frame
+# from tkinter import tix
 # from tkinter import Menu
 from tkinter.filedialog import asksaveasfile
 from tkinter import filedialog
@@ -51,7 +53,6 @@ class App:
         self.sort_column = None  # added attribute for sorting
         self.dropdown_values = None
         self.dropdown_value_keys = None
-        
         # GL Filters
         self.filter_start_date = None
         self.filter_end_date = None
@@ -67,8 +68,7 @@ class App:
         self.filter_supplier_frcst = None
         self.filter_desc_frcst = None
         self.filter_po_frcst = None
-        
-        
+        # Tab Frames
         self.tab_tagging = None
         self.tab_auto_tagger = None
         self.tab_full_forecast = None
@@ -83,7 +83,9 @@ class App:
         self.tab_4_bottom_table2_frame = None
         self.tab_4_bottom_left_top_half_frame = None
         self.tab_4_bottom_left_bottom_half_frame = None
-        
+        # File Paths
+        self.gl_file_path = None
+        self.active_wo_file_path = None
         
         # views are used to show the data
         self.gl_view_name = '[dbo].[vw_general_ledger_full]' # [dbo].[vw_general_ledger_full] | [mart].[msa_GL_rawformat]
@@ -447,37 +449,37 @@ class App:
             self.create_drop_down_values() 
             
 
-            # # Create GL and Forecast Tables in Tab 1
-            # self.tab_tagging = ttk.Frame(self.notebook)
-            # self.notebook.add(self.tab_tagging, text=" Tag GL/Forecast Data ")
-            # self.login_label = ttk.Label(self.login_frame, text="Building tab 1 for GL tagging...", background="#f0f0f0", width=min_width, anchor='center')
-            # self.login_label.grid(row=3, column=0, columnspan=2, pady=2, sticky='nsew')
-            # self.login_frame.update()
-            # self.create_tagger_tab_tables()
+            # Create GL and Forecast Tables in Tab 1
+            self.tab_tagging = ttk.Frame(self.notebook)
+            self.notebook.add(self.tab_tagging, text=" Tag GL/Forecast Data ")
+            self.login_label = ttk.Label(self.login_frame, text="Building tab 1 for GL tagging...", background="#f0f0f0", width=min_width, anchor='center')
+            self.login_label.grid(row=3, column=0, columnspan=2, pady=2, sticky='nsew')
+            self.login_frame.update()
+            self.create_tagger_tab_tables()
             
-            # # Tab #2
-            # self.tab_auto_tagger = ttk.Frame(self.notebook)
-            # self.notebook.add(self.tab_auto_tagger, text=" Auto Tagger ")
-            # self.login_label = ttk.Label(self.login_frame, text="Building tab 2 for auto tagger...", background="#f0f0f0", width=min_width, anchor='center')
-            # self.login_label.grid(row=3, column=0, columnspan=2, pady=2, sticky='nsew')
-            # self.login_frame.update()
-            # self.create_auto_tagger_table()
+            # Tab #2
+            self.tab_auto_tagger = ttk.Frame(self.notebook)
+            self.notebook.add(self.tab_auto_tagger, text=" Auto Tagger ")
+            self.login_label = ttk.Label(self.login_frame, text="Building tab 2 for auto tagger...", background="#f0f0f0", width=min_width, anchor='center')
+            self.login_label.grid(row=3, column=0, columnspan=2, pady=2, sticky='nsew')
+            self.login_frame.update()
+            self.create_auto_tagger_table()
             
-            # # Tab #3
-            # self.tab_full_forecast = ttk.Frame(self.notebook)
-            # self.notebook.add(self.tab_full_forecast, text=" Edit Forecast Line Items ")
-            # self.login_label = ttk.Label(self.login_frame, text="Building tab 3 for forecast line items...", background="#f0f0f0", width=min_width, anchor='center')
-            # self.login_label.grid(row=3, column=0, columnspan=2, pady=2, sticky='nsew')
-            # self.login_frame.update()
-            # self.create_full_forecast_table()
+            # Tab #3
+            self.tab_full_forecast = ttk.Frame(self.notebook)
+            self.notebook.add(self.tab_full_forecast, text=" Edit Forecast Line Items ")
+            self.login_label = ttk.Label(self.login_frame, text="Building tab 3 for forecast line items...", background="#f0f0f0", width=min_width, anchor='center')
+            self.login_label.grid(row=3, column=0, columnspan=2, pady=2, sticky='nsew')
+            self.login_frame.update()
+            self.create_full_forecast_table()
             
-            # # Tab #4
-            # self.tab_add_work_orders = ttk.Frame(self.notebook)
-            # self.notebook.add(self.tab_add_work_orders, text=" Add Work Orders to Forecast ")
-            # self.login_label = ttk.Label(self.login_frame, text="Building tab 4 for work orders...", background="#f0f0f0", width=min_width, anchor='center')
-            # self.login_label.grid(row=3, column=0, columnspan=2, pady=2, sticky='nsew')
-            # self.login_frame.update()
-            # self.create_new_work_order_tab()
+            # Tab #4
+            self.tab_add_work_orders = ttk.Frame(self.notebook)
+            self.notebook.add(self.tab_add_work_orders, text=" Add Work Orders to Forecast ")
+            self.login_label = ttk.Label(self.login_frame, text="Building tab 4 for work orders...", background="#f0f0f0", width=min_width, anchor='center')
+            self.login_label.grid(row=3, column=0, columnspan=2, pady=2, sticky='nsew')
+            self.login_frame.update()
+            self.create_new_work_order_tab()
             
             # Tab Admin 
             if is_admin == 1:
@@ -3259,7 +3261,8 @@ class App:
         for row in filtered_rows:
             values = [row.get(col, "") for col in self.column_headers_filtered_forecast]
             self.tree_filtered_forecast.insert("", "end", values=values)
-    
+
+        self.tab_4_add_wo_to_forecast_button.config(state="disabled")
 
 
     # REFRESH WORK ORDER DATA
@@ -3303,6 +3306,7 @@ class App:
             msg = str(e)
             print('Failed: '+ str(msg))
             tk.messagebox.showinfo("Failed", f"Work Order was NOT retreived successfully! {msg}")
+            
             
             
     def delete_new_work_order_record(self):
@@ -3411,8 +3415,8 @@ class App:
             # Store the Entry field in the list
             self.forecasted_cost_entries.append(forecasted_cost_entry)
             
+            
         self.tab_4_bottom_left_frame.update()
-        
         self.tab_4_add_wo_to_forecast_button.config(state="normal")
         
         
@@ -3422,27 +3426,59 @@ class App:
         wo_row = self.tree_new_work_orders.item(self.item_wo_id)['values']
         wo_id = wo_row[0]  # Replace with the index of the primary key column
         
-        forecasted_costs = [entry.get() for entry in self.forecasted_cost_entries]
-        print(wo_id, forecasted_costs)
+        costs = [entry.get() for entry in self.forecasted_cost_entries]
+        print(wo_id, costs)
+        
+        conn = self.connect_to_db()
+        cursor = conn.cursor()
+        
+        query = f"""
+        EXEC [dbo].[sp_insert_work_order_into_forecast] 
+             {wo_id} -- wo id
+            ,'{costs[0]}'  -- jan
+            ,'{costs[1]}'  -- feb
+            ,'{costs[2]}'  -- mar
+            ,'{costs[3]}'  -- apr 
+            ,'{costs[4]}'  -- may
+            ,'{costs[5]}'  -- jun
+            ,'{costs[6]}'  -- jul
+            ,'{costs[7]}'  -- aug
+            ,'{costs[8]}'  -- sep
+            ,'{costs[9]}'  -- oct
+            ,'{costs[10]}' -- nov
+            ,'{costs[11]}' -- dec
+        """.lstrip('\t')
+        print(query)
+        
+        cursor.execute(f"""
+        INSERT INTO [audit].[user_actions] ([action_type], [action_sql]) 
+        VALUES ('add_work_order_to_forecast', '{query.replace("'", "''")}')
+        """)
         
         try:
+            # conn.commit()
+            # cursor.execute(query)
+            
+            # Update the Treeview to remove the deleted row
+            self.tree_new_work_orders.delete(self.tree_new_work_orders.selection())
             
             # refresh tables at the end
             self.create_work_order_table_tab_4()
             self.create_filtered_forecast_table_tab_4()
             
+            self.tab_4_add_wo_to_forecast_button.config(state="disabled")
+            
         except Exception as e:
             msg = str(e)
             print('Failed: '+ str(msg))
             tk.messagebox.showinfo("Failed", f"Something went wrong trying to add the Work Order {wo_id} to the Forecast. {msg}")
-        
+            
     
 
     def on_filtered_forecast_row_select(self, event):
-        self.filtered_forecast_id = self.tree_filtered_forecast.focus()
-        filtered_forecast_row = self.tree_filtered_forecast.item(self.filtered_forecast_id)['values']
-        ff_id = filtered_forecast_row[0]  # Replace with the index of the primary key column
-        print(f"SELECTED FILTERED FORECAST ID: {ff_id}")
+        filtered_forecast_row = self.tree_filtered_forecast.item(self.tree_filtered_forecast.focus())['values']
+        self.filtered_forecast_id = filtered_forecast_row[0]  # Replace with the index of the primary key column
+        print(f"SELECTED FILTERED FORECAST ID: {self.filtered_forecast_id}")
         
         self.find_forecast_from_wo_button.config(state="normal") # enable button
         
@@ -3455,7 +3491,7 @@ class App:
             # height = self.master.winfo_screenheight() - 100
             # self.update_full_forecast_window.geometry(f"1200x{height}+10+10")
             self.update_filtered_forecast_window.geometry("1200x900+10+10")
-            self.update_filtered_forecast_window.title(f"Update Forecast ID: {self.ff_id}")
+            self.update_filtered_forecast_window.title(f"Update Forecast ID: {self.filtered_forecast_id}")
             
             # Create a canvas and add a scrollbar to it
             canvas = tk.Canvas(self.update_filtered_forecast_window)
@@ -3480,7 +3516,7 @@ class App:
             var_prev_year = var_cur_year - 1
             
             query = f"""
-            EXEC [dbo].[sp_select_full_forecast_and_items_for_update] {self.ff_id}, {self.filter_year_forecast};
+            EXEC [dbo].[sp_select_full_forecast_and_items_for_update] {self.filtered_forecast_id}, {self.filter_year_forecast};
             """.lstrip('\t')
             print(query)
             
@@ -3573,6 +3609,7 @@ class App:
             tk.messagebox.showinfo("Failed", f"Error! {msg}")
             
             
+            
     def save_update_filtered_forecast_data(self, entry_fields):
         cc_value = self.dropdown_values['Company Code'][entry_fields[1].get()] # company code
         bu_value = self.dropdown_values['Business Unit'][entry_fields[2].get()] # entry_fields[15].get() or '' # business unit value
@@ -3628,7 +3665,7 @@ class App:
             
             query = f"""
             EXEC [dbo].[sp_update_full_forecast_and_items]
-                 {self.ff_id}, -- forecast id
+                 {self.filtered_forecast_id}, -- forecast id
                  {self.filter_year_forecast}, -- year
                 '{cc_value}', -- company code
                 '{bu_value}', -- business unit
@@ -3704,6 +3741,16 @@ class App:
             print('Failed: '+ str(msg))
             tk.messagebox.showinfo("Failed", f"Error! {msg}")
     
+    
+    #########################
+    ##### RESOURCES TAB #####
+    #########################
+    
+    # bulk upload forecast updates (add in template file)
+    
+    # trigger SFTP file update (non-admin stuff)
+    
+    
     #####################
     ##### ADMIN TAB #####
     #####################
@@ -3743,7 +3790,6 @@ class App:
         
         # GENERAL LEDGER MANUAL FILE
         tk.Label(self.admin_frame, text="General Ledger File", bg=self.admin_frame["bg"]).grid(row=6, column=0, padx=5, pady=5, sticky='wns')
-        
         # Create the "Select File" button and file path label
         self.select_gl_button = ttk.Button(self.admin_frame, text="Browse Excel",  
                                                   command=self.select_gl_file,
@@ -3754,30 +3800,17 @@ class App:
         self.gl_label.grid(row=6, column=2, columnspan=4, padx=5, pady=(5, 5), sticky='wns')
         
         
-        # # CONTRACTOR DETAILS
-        # tk.Label(self.admin_frame, text="Contractor Details File", bg=self.admin_frame["bg"]).grid(row=8, column=0, padx=5, pady=5, sticky='wns')
-        
-        # # Create the "Select File" button and file path label
-        # self.select_contractors_button = ttk.Button(self.admin_frame, text="Browse Excel", 
-        #                                           command=self.select_contractor_details,
-        #                                           style="TButton")
-        # self.select_contractors_button.grid(row=8, column=1, padx=5, pady=5, sticky='w')
+        # WORK ORDER
+        tk.Label(self.admin_frame, text="Active Work Orders File", bg=self.admin_frame["bg"]).grid(row=7, column=0, padx=5, pady=5, sticky='wns')
+        # Create the "Select File" button and file path label
+        self.select_active_wo_button = ttk.Button(self.admin_frame, text="Browse CSV",  
+                                                  command=self.select_active_wo_file,
+                                                  style="TButton")
+        self.select_active_wo_button.grid(row=7, column=1, padx=5, pady=5, sticky='w')
     
-        # self.contractors_label = tk.Label(self.admin_frame, text=" ", anchor='w', width=70, bg=self.admin_frame["bg"])
-        # self.contractors_label.grid(row=8, column=2, columnspan=4, padx=5, pady=(5, 20), sticky='wns')
-        
-        
-        # # KEACH'S HR REPORT
-        # tk.Label(self.admin_frame, text="Keach HR File", bg=self.admin_frame["bg"]).grid(row=10, column=0, padx=5, pady=5, sticky='wns')
-        
-        # # Create the "Select File" button and file path label
-        # self.select_hr_button = ttk.Button(self.admin_frame, text="Browse Excel", 
-        #                                           command=self.select_keach_hr,
-        #                                           style="TButton")
-        # self.select_hr_button.grid(row=10, column=1, padx=5, pady=5, sticky='w')
-    
-        # self.keach_hr_label = tk.Label(self.admin_frame, text=" ", anchor='w', width=70, bg=self.admin_frame["bg"])
-        # self.keach_hr_label.grid(row=10, column=2, columnspan=4, padx=5, pady=(5, 20), sticky='wns')
+        self.active_wo_label = tk.Label(self.admin_frame, text=" ", anchor='w', width=70, bg=self.admin_frame["bg"])
+        self.active_wo_label.grid(row=7, column=2, columnspan=4, padx=5, pady=(5, 5), sticky='wns')
+        # tix.Balloon.bind_widget(self.select_active_wo_button, balloonmsg='All Reports > ProdOps Business Planning > Active Work Orders')
                 
 
                 
@@ -3969,88 +4002,155 @@ class App:
             except Exception as e:
                 print('Failed: '+ str(e))
                 tk.messagebox.showerror("Error", "There was an error with the upload!") 
-            
-            
-            
-    # def select_timesheets_file(self):
+                
+                
+                
+    def select_active_wo_file(self):
+        self.active_wo_file_path = filedialog.askopenfilename(filetypes=[("CSV Files", "*.csv")])
+        print(f"Active Work Orders File Path: {self.active_wo_file_path}")
         
-    #     self.timesheets_file_path = filedialog.askopenfilename(filetypes=[("CSV Files", "*.csv")])
-    #     print(f"Timesheets File Path: {self.timesheets_file_path}")
-        
-    #     # If the user didn't select a file, do nothing
-    #     if not self.timesheets_file_path:
-    #         pass
-    #     else:
-    #         try:
-    #             self.timesheets_label.config(text=self.timesheets_file_path)
-            
-    #         except Exception as e:
-    #             print('Failed: '+ str(e))
-    #             tk.messagebox.showerror("Error", "There was an error with the upload!") 
-            
-            
-    # def select_contractor_details(self):
-    
-    #     self.contractor_details_file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx;*.xls")])
-    #     print(f"Contractor Details File Path: {self.contractor_details_file_path}")
-        
-    #     # If the user didn't select a file, do nothing
-    #     if not self.contractor_details_file_path:
-    #         pass
-    #     else:
-    #         try:
-    #             self.contractors_label.config(text=self.contractor_details_file_path)
-            
-    #         except Exception as e:
-    #             print('Failed: '+ str(e))
-    #             tk.messagebox.showerror("Error", "There was an error with the upload!") 
-            
-            
-    # def select_keach_hr(self):
-    
-    #     self.keach_hr_file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx;*.xls")])
-    #     print(f"Keach's HR File Path: {self.keach_hr_file_path}")
-        
-    #     # If the user didn't select a file, do nothing
-    #     if not self.keach_hr_file_path:
-    #         pass
-    #     else:
-    #         try:
-    #             self.keach_hr_label.config(text=self.keach_hr_file_path)
-            
-    #         except Exception as e:
-    #             print('Failed: '+ str(e))
-    #             tk.messagebox.showerror("Error", "There was an error with the upload!") 
+        # If the user didn't select a file, do nothing
+        if not self.active_wo_file_path:
+            pass
+        else:
+            try:
+                self.active_wo_label.config(text=self.active_wo_file_path)
+            except Exception as e:
+                print('Failed: '+ str(e))
+                tk.messagebox.showerror("Error", "There was an error with the upload!") 
             
 
+
     def upload_files(self):
-        
+        conn = self.connect_to_db()
+        cursor = conn.cursor()
+                
         try:
         
-            if self.gl_file_path:
+            if self.gl_file_path and os.path.isfile(self.gl_file_path):
                 self.insert_dataframe_to_sql_server(self.excel_file_to_dataframe(self.gl_file_path, 
                                                                                 skiprows=0, skipfooter=0, display_df='N'),
                                                     'staging', 'sap_general_ledger',
                                                     batch_size=1000, truncate_table='Y')
+                try:
+                    insert_query = f"""
+                    INSERT INTO [audit].[etl_executions]
+                         ([job_name]
+                         ,[file_name]
+                         ,[requested_date]
+                         ,[completed_date]
+                         ,[requested_by]
+                         ,[created_date]
+                         ,[is_error]
+                         ,[error_message])
+                     VALUES
+                    ('sp_etl_general_ledger' -- job_name
+                    ,'{self.gl_file_path}' -- file_name 
+                    ,CURRENT_TIMESTAMP -- requested_date
+                    ,NULL -- completed_date
+                    ,CURRENT_USER -- requested_by
+                    ,CURRENT_TIMESTAMP -- created_date
+                    ,0 -- is_error
+                    ,NULL -- error_message
+                    )
+                    """
+                    print(insert_query)
+                    cursor.execute(insert_query)
+                    conn.commit()
+                    
+                    gl_query = "EXEC [dbo].[sp_etl_general_ledger]"
+                    cursor.execute(gl_query)
+                    conn.commit()
+                    
+                    update_query = """
+                    UPDATE [audit].[etl_executions]
+                       SET [completed_date] = CURRENT_TIMESTAMP
+                    WHERE [etl_executions_id] = (SELECT MAX([etl_executions_id]) FROM [audit].[etl_executions] WHERE [requested_by] = CURRENT_USER)
+                    AND job_name = 'sp_etl_general_ledger'
+                    """
+                    print(update_query)
+                    cursor.execute(update_query)
+                    conn.commit()
                 
-        #     if self.timesheets_file_path:
-        #         self.insert_dataframe_to_sql_server(self.flat_file_to_dataframe(self.timesheets_file_path, 
-        #                                                                         delim='|', display_df='N'),
-        #                                            'SHARE', 'BusPlanAllocationsTimesheets',
-        #                                            batch_size=1000, truncate_table='Y')
+                except Exception as e:
+                    msg = str(e)
+                    print(f"Failed: {msg}")
+                    
+                    update_query = """
+                    UPDATE [audit].[etl_executions]
+                       SET [completed_date] = CURRENT_TIMESTAMP
+                          ,[is_error] = 1
+                          ,[error_message] = '{msg}'
+                    WHERE [etl_executions_id] = (SELECT MAX([etl_executions_id]) FROM [audit].[etl_executions] WHERE [requested_by] = CURRENT_USER)
+                    AND job_name = 'sp_etl_general_ledger'
+                    """
+                    cursor.execute(update_query)
+                    conn.commit()
                 
-            # if self.contractor_details_file_path:
-            #     self.insert_dataframe_to_sql_server(self.excel_file_to_dataframe(self.contractor_details_file_path, 
-            #                                                                     skiprows=1, skipfooter=3, display_df='N'),
-            #                                        'SHARE', 'BusPlanContractorDetails',
-            #                                        batch_size=1000, truncate_table='Y')
+                    
                 
-            # if self.keach_hr_file_path:
-            #     self.insert_dataframe_to_sql_server(self.excel_file_to_dataframe(self.keach_hr_file_path, 
-            #                                                                     skiprows=0, skipfooter=0, display_df='N'),
-            #                                        'SHARE', 'BusPlanContractorActiveRpt',
-            #                                        batch_size=1000, truncate_table='Y')
+            if self.active_wo_file_path and os.path.isfile(self.active_wo_file_path):
+                self.insert_dataframe_to_sql_server(self.flat_file_to_dataframe(self.active_wo_file_path, 
+                                                                                delim='|', display_df='N'),
+                                                    'staging', 'work_order_detail',
+                                                    batch_size=1000, truncate_table='Y')
+                try:
+                    insert_query = f"""
+                    INSERT INTO [audit].[etl_executions]
+                         ([job_name]
+                         ,[file_name]
+                         ,[requested_date]
+                         ,[completed_date]
+                         ,[requested_by]
+                         ,[created_date]
+                         ,[is_error]
+                         ,[error_message])
+                     VALUES
+                    ('sp_etl_work_order' -- job_name
+                    ,'{self.active_wo_file_path}' -- file_name 
+                    ,CURRENT_TIMESTAMP -- requested_date
+                    ,NULL -- completed_date
+                    ,CURRENT_USER -- requested_by
+                    ,CURRENT_TIMESTAMP -- created_date
+                    ,0 -- is_error
+                    ,NULL -- error_message
+                    )
+                    """
+                    print(insert_query)
+                    cursor.execute(insert_query)
+                    conn.commit()
+                    
+                    wo_query = "EXEC [dbo].[sp_etl_work_order]"
+                    cursor.execute(wo_query)
+                    conn.commit()
+                    
+                    update_query = """
+                    UPDATE [audit].[etl_executions]
+                       SET [completed_date] = CURRENT_TIMESTAMP
+                    WHERE [etl_executions_id] = (SELECT MAX([etl_executions_id]) FROM [audit].[etl_executions] WHERE [requested_by] = CURRENT_USER)
+                    AND job_name = 'sp_etl_work_order'
+                    """
+                    print(update_query)
+                    cursor.execute(update_query)
+                    conn.commit()
                 
+                except Exception as e:
+                    msg = str(e)
+                    print(f"Failed: {msg}")
+                    
+                    update_query = """
+                    UPDATE [audit].[etl_executions]
+                       SET [completed_date] = CURRENT_TIMESTAMP
+                          ,[is_error] = 1
+                          ,[error_message] = '{msg}'
+                    WHERE [etl_executions_id] = (SELECT MAX([etl_executions_id]) FROM [audit].[etl_executions] WHERE [requested_by] = CURRENT_USER)
+                    AND job_name = 'sp_etl_work_order'
+                    """
+                    cursor.execute(update_query)
+                    conn.commit()
+                    
+                
+            # update to completed
             self.upload_label = tk.Label(self.admin_frame, text="Completed!", anchor='w', width=100)
             self.upload_label.grid(row=5, column=1, columnspan=5, padx=5, pady=20, sticky='w')
             self.admin_frame.update()
@@ -4058,10 +4158,12 @@ class App:
         except Exception as e:
             msg = str(e)
             print(f"Failed: {msg}")
-            tk.messagebox.showerror("Error", f"There was an error! {msg}") 
-    
-    
-    
+            tk.messagebox.showerror("Error", f"There was an error! {msg}")
+            self.upload_label = tk.Label(self.admin_frame, text=f"Error! {msg}", anchor='w', width=100)
+            self.upload_label.grid(row=5, column=1, columnspan=5, padx=5, pady=20, sticky='w')
+            self.admin_frame.update()
+            
+
 
 if __name__ == '__main__':
     root = tk.Tk()

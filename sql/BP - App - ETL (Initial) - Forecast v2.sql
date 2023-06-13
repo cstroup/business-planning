@@ -1,7 +1,7 @@
 USE [TEST]
 GO
 
-INSERT INTO [dbo].[forecast_line_item_v2]
+INSERT INTO [dbo].[forecast_line_item]
            ([forecast_id]
            ,[date_id]
            ,[amount]
@@ -104,7 +104,7 @@ ORDER BY 1,2
 
 --SELECT * FROM #TMP_ACTUALS ORDER BY 1 DESC
 
-MERGE [dbo].[forecast_line_item_v2] AS TGT
+MERGE [dbo].[forecast_line_item] AS TGT
 USING #TMP_ACTUALS	AS SRC
 ON SRC.forecast_id = TGT.forecast_id
 	AND SRC.year_month = LEFT(TGT.[date_id], 6)
@@ -150,7 +150,7 @@ ORDER BY [forecast_id], [date_id]
 ;
 
 
-MERGE [dbo].[forecast_line_item_v2] AS TGT
+MERGE [dbo].[forecast_line_item] AS TGT
 USING #TMP_BUDGET	AS SRC
 ON SRC.forecast_id = TGT.forecast_id
 	AND SRC.date_id = TGT.[date_id]

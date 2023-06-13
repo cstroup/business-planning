@@ -243,31 +243,31 @@ GO
 ;
 
 
-DROP VIEW IF EXISTS vw_forecast_line_items_v2;
-GO
-CREATE VIEW vw_forecast_line_items_v2 AS
+--DROP VIEW IF EXISTS vw_forecast_line_items_v2;
+--GO
+--CREATE VIEW vw_forecast_line_items_v2 AS
 
-SELECT *
-FROM (
-  SELECT [forecast_id], [date_type], ISNULL([amount], 0) as amount
-  FROM 
-	(SELECT
-		fli.[forecast_id],
-		dd.[short_month_short_year] as [date_type],
-		LEFT(dd.date_id, 6) as year_month,
-		ISNULL(fli.[amount], 0) as amount
-	FROM [dbo].[forecast_line_item] as fli
-	JOIN [dbo].[date_dimension] as dd
-		ON fli.[date_id] = dd.[date_id]
-	WHERE fli.[is_deleted] = 0
-	) as t
-) src
-PIVOT (
-  SUM([amount])
-  FOR [date_type] IN ([Jan], [Feb], [Mar], [Apr], [May], [Jun], [Jul], [Aug], [Sep], [Oct], [Nov], [Dec])
-) piv
-GO
-;
+--SELECT *
+--FROM (
+--  SELECT [forecast_id], [date_type], ISNULL([amount], 0) as amount
+--  FROM 
+--	(SELECT
+--		fli.[forecast_id],
+--		dd.[short_month_short_year] as [date_type],
+--		LEFT(dd.date_id, 6) as year_month,
+--		ISNULL(fli.[amount], 0) as amount
+--	FROM [dbo].[forecast_line_item] as fli
+--	JOIN [dbo].[date_dimension] as dd
+--		ON fli.[date_id] = dd.[date_id]
+--	WHERE fli.[is_deleted] = 0
+--	) as t
+--) src
+--PIVOT (
+--  SUM([amount])
+--  FOR [date_type] IN ([Jan], [Feb], [Mar], [Apr], [May], [Jun], [Jul], [Aug], [Sep], [Oct], [Nov], [Dec])
+--) piv
+--GO
+--;
 
 
 
@@ -355,8 +355,6 @@ GO
 
 
 
-
-
 DROP VIEW IF EXISTS vw_work_orders_new;
 GO
 CREATE VIEW vw_work_orders_new AS 
@@ -419,8 +417,8 @@ AND woatf.[is_ignored] = 0
 AND woatf.[is_deleted] = 0
 AND wo.[is_deleted] = 0
 AND YEAR(start_d.[full_date]) >= YEAR(CURRENT_TIMESTAMP)
-AND con.[pid] IN ('P3180681', 'P2692432', 'P3180682', 'P3145314',
-                        'P3047046', 'P3112437', 'P3045551', 'P2239909')
+--AND con.[pid] IN ('P3180681', 'P2692432', 'P3180682', 'P3145314',
+--                        'P3047046', 'P3112437', 'P3045551', 'P2239909')
 ;
 GO
 
@@ -789,7 +787,7 @@ SELECT
 FROM
 	(SELECT
 		MAX([date_id]) as max_date
-	FROM [dbo].[forecast_line_item_v2]
+	FROM [dbo].[forecast_line_item]
 	WHERE [is_actualized] = 1
 	) as t
 JOIN [dbo].[date_dimension] as dd
@@ -798,11 +796,12 @@ JOIN [dbo].[date_dimension] as dd
 GO
 
 
-SELECT [date_id], [full_date] 
-        FROM [dbo].[vw_dropdown_date] 
-        WHERE [full_date] >= DATEADD(day, -90, CURRENT_TIMESTAMP)
-        AND [full_date] < CURRENT_TIMESTAMP
-        ORDER BY 1
+--SELECT [date_id], [full_date] 
+--        FROM [dbo].[vw_dropdown_date] 
+--        WHERE [full_date] >= DATEADD(day, -90, CURRENT_TIMESTAMP)
+--        AND [full_date] < CURRENT_TIMESTAMP
+--        ORDER BY 1
+
 
 DROP VIEW IF EXISTS vw_po_number_forecast_id;
 GO
@@ -827,81 +826,3 @@ AND [purchase_order_number] IS NOT NULL
 AND LEN([purchase_order_number]) > 0
 ;
 GO
-
-
-SELECT
-	MAX([id]) as [Work Order ID],
-	MAX(worker_start_date) as [Worker Start Date],
-	MAX(worker_end_date) as [Worker End Date],
-	MAX([allocation_percentage]) as [Allocation],
-	MAX([current_bill_rate]) as [Bill Rate],
-	MAX([hours_per_day]) as [Hours per Day],
-	MAX([hours_per_week]) as [Hours Per Week],
-	MAX([cost_object_code]) as [Cost Object Code],
-	MAX([locale]) as [Locale],
-	[calendar_year_month] as [Year Month],
-	[short_month_short_year] as [Month Year],
-	SUM(is_weekend) as [Weekends],
-	SUM(is_company_holiday) as [Holiday],
-	SUM(is_estimated_pto) as [Estimated PTO],
-	SUM(workdays) as [Total Work Days],
-	SUM(work_order_workdays) as [Work Order Work Days],
-	ROUND(SUM(payments), 2) as [Forecasted Cost]
-FROM 
-	(SELECT
-		wo.[id],
-		dates.[full_date],
-		dates.[short_month_short_year],
-		dates.[calendar_year_month],
-		start_d.[full_date] as worker_start_date,
-		end_d.[full_date] as worker_end_date,
-		wo.[allocation_percentage],
-		wo.[current_bill_rate],
-		wo.[hours_per_day],
-		wo.[hours_per_week],
-		l.[local] as locale,
-		coc.[cost_object_code],
-		IIF(dates.[weekday_weekend] = 'Weekend', 1, 0) as is_weekend,
-		dates.is_company_holiday,
-		dates.is_estimated_pto,
-		CASE
-			WHEN dates.[weekday_weekend] != 'Weekend'
-				AND dates.is_company_holiday = 0
-				AND dates.is_estimated_pto = 0
-			THEN 1
-			ELSE 0
-		END as workdays,
-		CASE
-			WHEN dates.[weekday_weekend] != 'Weekend'
-				AND dates.is_company_holiday = 0
-				AND dates.is_estimated_pto = 0
-				AND dates.[full_date] BETWEEN start_d.[full_date] AND end_d.[full_date]
-			THEN 1
-			ELSE 0
-		END as work_order_workdays,
-		CASE
-			WHEN dates.[full_date] BETWEEN start_d.[full_date] AND end_d.[full_date] AND l.[local] IN ('Onshore')
-			THEN wo.current_bill_rate * (wo.allocation_percentage/100) * dates.onshore_work_hours
-			WHEN dates.[full_date] BETWEEN start_d.[full_date] AND end_d.[full_date] AND l.[local] NOT IN ('Onshore')
-			THEN wo.current_bill_rate * (wo.allocation_percentage/100) * dates.offshore_work_hours
-			WHEN dates.[full_date] BETWEEN start_d.[full_date] AND end_d.[full_date] AND l.[local] IS NULL -- unknown
-			THEN wo.current_bill_rate * (wo.allocation_percentage/100) * wo.[hours_per_day]
-			ELSE 0
-		END as payments
-	FROM [dbo].[work_order] as wo
-	LEFT JOIN [dbo].[date_dimension] as start_d
-		ON wo.[worker_start_date_id] = start_d.[date_id]
-	LEFT JOIN [dbo].[date_dimension] as end_d
-		ON wo.[worker_end_date_id] = end_d.[date_id]
-	JOIN [dbo].[date_dimension] as dates
-		ON dates.calendar_year = end_d.calendar_year -- pull all dates for same year
-	LEFT JOIN [dbo].[location] as l
-		ON wo.[location_id] = l.[location_id]
-	JOIN [dbo].[cost_object_code] as coc
-		ON wo.[cost_object_code_id] = coc.[cost_object_code_id]
-	WHERE wo.[id] = '80630'
-	) AS t
-GROUP BY [calendar_year_month], [short_month_short_year]
-ORDER BY [Year Month]
-;
-

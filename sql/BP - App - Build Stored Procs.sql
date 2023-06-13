@@ -293,11 +293,11 @@ END
 ;
 GO
 
-SELECT * FROM [audit].[user_actions] ORDER BY 1 DESC
+--SELECT * FROM [audit].[user_actions] ORDER BY 1 DESC
 
-SELECT * FROM [dbo].[forecast] ORDER BY [updated_date] DESC
+--SELECT * FROM [dbo].[forecast] ORDER BY [updated_date] DESC
 
-SELECT * FROM [dbo].[forecast_line_item] ORDER BY 1 DESC
+--SELECT * FROM [dbo].[forecast_line_item] ORDER BY 1 DESC
 
 
 
@@ -565,7 +565,7 @@ FROM (
 				THEN fli.[actual]
 				ELSE fli.[amount]
 			END as amount
-		FROM [dbo].[forecast_line_item_v2] as fli
+		FROM [dbo].[forecast_line_item] as fli
 		JOIN [dbo].[date_dimension] as dd
 			ON fli.[date_id] = dd.[date_id]
 		WHERE fli.[is_deleted] = 0
@@ -598,7 +598,7 @@ SELECT
 	SUM(0) as prev_fy_q1f,
 	SUM(0) as prev_fy_q2f,
 	SUM(0) as prev_fy_q3f
-FROM [dbo].[forecast_line_item_v2] as frcst
+FROM [dbo].[forecast_line_item] as frcst
 WHERE LEFT(frcst.[date_id], 4) = @var_year
 GROUP BY LEFT(frcst.[date_id], 4), frcst.[forecast_id]
 ),
@@ -929,14 +929,14 @@ BEGIN
            ([forecast_id]
            ,[date_id]
            ,[amount]
-           ,[is_actual]
+           ,[is_actualized]
            ,[is_deleted]
 		   )
 	SELECT DISTINCT
 		@new_forecast_id as [forecast_id],
 		[first_of_month_date_key],
 		0 as [amount],
-		0 as [is_actual],
+		0 as [is_actualized],
 		0 as [is_deleted]
 	FROM [dbo].[date_dimension]
 	WHERE [calendar_year] = YEAR(GETDATE()) -- default to current year?
@@ -978,7 +978,7 @@ FROM (
 				THEN fli.[actual]
 				ELSE fli.[amount]
 			END as amount
-		FROM [dbo].[forecast_line_item_v2] as fli
+		FROM [dbo].[forecast_line_item] as fli
 		JOIN [dbo].[date_dimension] as dd
 			ON fli.[date_id] = dd.[date_id]
 		WHERE fli.[is_deleted] = 0
@@ -1012,7 +1012,7 @@ SELECT
 	SUM(0) as prev_fy_q1f,
 	SUM(0) as prev_fy_q2f,
 	SUM(0) as prev_fy_q3f
-FROM [dbo].[forecast_line_item_v2] as frcst
+FROM [dbo].[forecast_line_item] as frcst
 WHERE LEFT(frcst.[date_id], 4) = @var_year
 AND frcst.forecast_id = @forecast_id
 GROUP BY LEFT(frcst.[date_id], 4), frcst.[forecast_id]
@@ -1354,7 +1354,7 @@ BEGIN
            ([forecast_id]
            ,[date_id]
            ,[amount]
-           ,[is_actual]
+           ,[is_actualized]
            ,[is_deleted]
 		   )
 	(
@@ -1477,7 +1477,7 @@ FROM (
 				THEN fli.[actual]
 				ELSE fli.[amount]
 			END as amount
-		FROM [dbo].[forecast_line_item_v2] as fli
+		FROM [dbo].[forecast_line_item] as fli
 		JOIN [dbo].[date_dimension] as dd
 			ON fli.[date_id] = dd.[date_id]
 		WHERE fli.[is_deleted] = 0
@@ -1511,7 +1511,7 @@ SELECT
 	SUM(0) as prev_fy_q1f,
 	SUM(0) as prev_fy_q2f,
 	SUM(0) as prev_fy_q3f
-FROM [dbo].[forecast_line_item_v2] as frcst
+FROM [dbo].[forecast_line_item] as frcst
 WHERE LEFT(frcst.[date_id], 4) = @var_year
 AND frcst.forecast_id = @forecast_id
 GROUP BY LEFT(frcst.[date_id], 4), frcst.[forecast_id]
@@ -1860,7 +1860,7 @@ BEGIN
 		@forecast_id as forecast_id,
 		dd.[first_of_month_date_key] as date_id, 
 		IIF(LEN(@jan) = 0, 0.00, TRY_CAST(@jan AS FLOAT)) as [amount], 
-		0 as is_actual, 
+		0 as [is_actualized], 
 		0 as is_deleted
 	FROM [dbo].[date_dimension] as dd WHERE [calendar_year] = @var_year AND [month_of_year] = 1
 	UNION
@@ -1909,6 +1909,271 @@ BEGIN
 		AND t.[date_id] = f.[date_id]
 	;
 
+END
+;
+GO
+
+
+
+-- EXEC [dbo].[sp_insert_work_order_into_forecast] 71645, 2023, '486.40', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0';         
+
+-- SELECT * FROM [dbo].[forecast] ORDER BY 1 DESC
+
+--SELECT * FROM [dbo].[forecast_line_item_v2]
+--WHERE forecast_id = (SELECT MAX(forecast_id) FROM [dbo].[forecast])
+
+DROP PROCEDURE IF EXISTS [dbo].[sp_insert_work_order_into_forecast];
+GO
+CREATE PROCEDURE [dbo].[sp_insert_work_order_into_forecast]
+    @wo_id INT,
+	@jan VARCHAR(255),
+	@feb VARCHAR(255),
+	@mar VARCHAR(255),
+	@apr VARCHAR(255),
+	@may VARCHAR(255),
+	@jun VARCHAR(255),
+	@jul VARCHAR(255),
+	@aug VARCHAR(255),
+	@sep VARCHAR(255),
+	@oct VARCHAR(255),
+	@nov VARCHAR(255),
+	@dec VARCHAR(255)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+	BEGIN TRY
+        BEGIN TRANSACTION; -- Start the transaction
+
+	INSERT INTO [dbo].[forecast]
+			   ([company_code_id]
+			   ,[business_unit_id]
+			   ,[department_id]
+			   ,[cost_center_code_id]
+			   ,[department_leader_id]
+			   ,[team_leader_id]
+			   ,[business_owner_id]
+			   ,[primary_contact_id]
+			   ,[supplier_id]
+			   ,[contractor_id]
+			   ,[worker_start_date_id]
+			   ,[worker_end_date_id]
+			   ,[override_end_date_id]
+			   ,[main_document_title_id]
+			   ,[cost_object_code_id]
+			   ,[site_id]
+			   ,[account_code_id]
+			   ,[work_type_id]
+			   ,[worker_status_id]
+			   ,[work_order_category_id]
+			   ,[expense_classification_id]
+			   ,[budget_code_id]
+			   ,[segmentation_id]
+			   ,[platform_id]
+			   ,[function_id]
+			   ,[support_scalable_id]
+			   ,[work_order_id]
+			   ,[description]
+			   ,[allocation]
+			   ,[current_bill_rate_hr]
+			   ,[current_bill_rate_day]
+			   ,[contractor_first_name]
+			   ,[contractor_last_name]
+			   ,[comment]
+			   ,[old_forecast_id]
+			   ,[is_deleted]
+			   ,[created_by]
+			   ,[created_date]
+			   ,[updated_by]
+			   ,[updated_date])
+		SELECT TOP 1
+			wo.[company_code_id],
+			wo.[business_unit_id],
+			wo.[department_id],
+			0 as [cost_center_code_id],
+			wo.svp_id as [department_leader_id],
+			0 as [team_leader_id],
+			0 as [business_owner_id],
+			wo.[primary_contact_id],
+			wo.[supplier_id],
+			wo.[contractor_id],
+			wo.[worker_start_date_id],
+			wo.[worker_end_date_id],
+			NULL as [override_end_date_id],
+			wo.[main_document_title_id],
+			wo.[cost_object_code_id],
+			wo.[location_id] as [site_id],
+			0 as [account_code_id],
+			(SELECT MIN(work_type_id) FROM [dbo].[work_type] WHERE work_type = 'Contingent') as [work_type_id],
+			wo.[worker_status_id],
+			0 as [work_order_category_id],
+			0 as [expense_classification_id],
+			0 as [budget_code_id],
+			0 as [segmentation_id],
+			0 as [platform_id],
+			0 as [function_id],
+			0 as [support_scalable_id],
+			wo.[work_order_id],
+			c.[full_name] as [description],
+			wo.[allocation_percentage] as [allocation],
+			wo.[current_bill_rate] as [current_bill_rate_hr],
+			NULL as [current_bill_rate_day],
+			c.[first_name] as [contractor_first_name],
+			c.[last_name] as [contractor_last_name],
+			NULL as [comment],
+			NULL as [old_forecast_id],
+			0 as [is_deleted],
+			CURRENT_USER as [created_by],
+			CURRENT_TIMESTAMP as [created_date],
+			CURRENT_USER as [updated_by],
+			CURRENT_TIMESTAMP as [updated_date]
+		FROM [dbo].[work_order] as wo
+		LEFT JOIN [dbo].[contractor] as c
+			ON wo.[contractor_id] = c.[contractor_id]
+		WHERE wo.[id] = @wo_id
+	;
+
+	UPDATE [dbo].[work_order_add_to_forecast]
+	SET [is_added] = 1,
+		[action_by] = CURRENT_USER,
+		[action_date] = CURRENT_TIMESTAMP,
+		[updated_by] = CURRENT_USER,
+		[updated_date] = CURRENT_TIMESTAMP
+	WHERE work_order_id = @wo_id
+	;
+
+	-- get most recently created record based on user
+	DECLARE @new_forecast_id BIGINT
+	SELECT @new_forecast_id = (SELECT MAX([forecast_id]) FROM [dbo].[forecast] WHERE [created_by] = CURRENT_USER)
+	;
+
+	INSERT INTO [dbo].[forecast_line_item]
+			   ([forecast_id]
+			   ,[date_id]
+			   ,[amount]
+			   ,[is_deleted]
+			   ,[is_actualized]
+			   ,[created_by]
+			   ,[created_date]
+			   ,[updated_by]
+			   ,[updated_date])
+	SELECT
+		@new_forecast_id as [forecast_id],
+		[date_id] as date_id,
+		[amount] as [amount],
+		0 as [is_deleted],
+		0 as [is_actualized],
+		CURRENT_USER as [created_by],
+		CURRENT_TIMESTAMP as [created_date],
+		CURRENT_USER as [updated_by],
+		CURRENT_TIMESTAMP as [updated_date]
+	FROM
+		(SELECT 
+			MIN(first_of_month_date_key) as date_id,
+			IIF(LEN(@jan) = 0, '0', @jan) as [amount]
+		FROM [dbo].[date_dimension] as dd
+		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
+		AND dd.month_name = 'January'
+		UNION
+		SELECT 
+			MIN(first_of_month_date_key) as date_id,
+			IIF(LEN(@feb) = 0, '0', @feb) as [amount]
+		FROM [dbo].[date_dimension] as dd
+		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
+		AND dd.month_name = 'February'
+		UNION 
+		SELECT 
+			MIN(first_of_month_date_key) as date_id,
+			IIF(LEN(@mar) = 0, '0', @mar) as [amount]
+		FROM [dbo].[date_dimension] as dd
+		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
+		AND dd.month_name = 'March'
+		UNION 
+		SELECT 
+			MIN(first_of_month_date_key) as date_id,
+			IIF(LEN(@apr) = 0, '0', @apr) as [amount]
+		FROM [dbo].[date_dimension] as dd
+		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
+		AND dd.month_name = 'April'
+		UNION 
+		SELECT 
+			MIN(first_of_month_date_key) as date_id,
+			IIF(LEN(@may) = 0, '0', @may) as [amount]
+		FROM [dbo].[date_dimension] as dd
+		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
+		AND dd.month_name = 'May'
+		UNION 
+		SELECT 
+			MIN(first_of_month_date_key) as date_id,
+			IIF(LEN(@jun) = 0, '0', @jun) as [amount]
+		FROM [dbo].[date_dimension] as dd
+		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
+		AND dd.month_name = 'June'
+		UNION 
+		SELECT 
+			MIN(first_of_month_date_key) as date_id,
+			IIF(LEN(@jul) = 0, '0', @jul) as [amount]
+		FROM [dbo].[date_dimension] as dd
+		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
+		AND dd.month_name = 'July'
+		UNION 
+		SELECT 
+			MIN(first_of_month_date_key) as date_id,
+			IIF(LEN(@aug) = 0, '0', @aug) as [amount]
+		FROM [dbo].[date_dimension] as dd
+		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
+		AND dd.month_name = 'August'
+		UNION 
+		SELECT 
+			MIN(first_of_month_date_key) as date_id,
+			IIF(LEN(@sep) = 0, '0', @sep) as [amount]
+		FROM [dbo].[date_dimension] as dd
+		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
+		AND dd.month_name = 'September'
+		UNION 
+		SELECT 
+			MIN(first_of_month_date_key) as date_id,
+			IIF(LEN(@oct) = 0, '0', @oct) as [amount]
+		FROM [dbo].[date_dimension] as dd
+		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
+		AND dd.month_name = 'October'
+		UNION 
+		SELECT 
+			MIN(first_of_month_date_key) as date_id,
+			IIF(LEN(@nov) = 0, '0', @nov) as [amount]
+		FROM [dbo].[date_dimension] as dd
+		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
+		AND dd.month_name = 'November'
+		UNION 
+		SELECT 
+			MIN(first_of_month_date_key) as date_id,
+			IIF(LEN(@dec) = 0, '0', @dec) as [amount]
+		FROM [dbo].[date_dimension] as dd
+		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
+		AND dd.month_name = 'December'
+		) as t
+		;
+
+		COMMIT; -- If everything is successful, commit the transaction
+    END TRY
+	    BEGIN CATCH
+        ROLLBACK; -- If any error occurred, rollback the transaction
+
+        -- Optionally, handle the error in some way, for example, by rethrowing it:
+        DECLARE @ErrorMessage NVARCHAR(4000);
+        DECLARE @ErrorSeverity INT;
+        DECLARE @ErrorState INT;
+
+        SELECT 
+            @ErrorMessage = ERROR_MESSAGE(),
+            @ErrorSeverity = ERROR_SEVERITY(),
+            @ErrorState = ERROR_STATE();
+
+        RAISERROR (@ErrorMessage, -- Message text.
+                   @ErrorSeverity, -- Severity.
+                   @ErrorState -- State.
+                   );
+    END CATCH
 END
 ;
 GO

@@ -26,7 +26,7 @@ CREATE TABLE [audit].[etl_executions](
 	[file_name] [nvarchar](1000) NULL,
 	[requested_date] DATETIME DEFAULT GETDATE(),
 	[completed_date] DATETIME NULL,
-	[requested_by] DATETIME DEFAULT CURRENT_USER,
+	[requested_by] [nvarchar](100) DEFAULT CURRENT_USER,
 	[created_date] DATETIME DEFAULT CURRENT_TIMESTAMP,
 	[is_error] bit DEFAULT 0,
 	[error_message] [nvarchar](1000) NULL,
@@ -35,17 +35,4 @@ GO
 ;
 CREATE INDEX idx_etl_executions_requested_date ON [audit].[etl_executions] ([requested_date]);
 CREATE INDEX idx_etl_executions_completed_date ON [audit].[etl_executions] ([completed_date]);
-
-
-
-USE [TEST]
-GO
-
-INSERT INTO [audit].[user_actions] ([action_sql]) ();
-GO
-
-SELECT * FROM [dbo].[user]
-
-
-
-             SELECT               is_admin             FROM [dbo].[user]              WHERE username = 'admin'             
+        

@@ -1412,9 +1412,9 @@ INSERT INTO [dbo].[deptartment]
            ,[raw])
 SELECT * FROM
 (SELECT DISTINCT
-	[Department Code of Hiring Manager] as code,
+	[Department of Hiring Manager Code] as code,
 	[Department of Hiring Manager] as department,
-	CONCAT([Department of Hiring Manager], ' (', [Department Code of Hiring Manager], ')') as department_long,
+	CONCAT([Department of Hiring Manager], ' (', [Department of Hiring Manager Code], ')') as department_long,
 	[Department of Hiring Manager] as raw
 FROM [staging].[work_order_detail]
 UNION
@@ -2243,12 +2243,12 @@ SELECT DISTINCT
 	wod.[Work Order ID] as [work_order_id],
 	wod.[Purchase Order Number] as [purchase_order_number],
 	wod.[Revision #] as [revision_number],
-	IIF(wod.[Current Bill Rate ST Hr] IS NULL, '0.0', wod.[Current Bill Rate ST Hr]) as [current_bill_rate],
+	IIF(wod.[Current Bill Rate ST Hr [ST/Hr]]] IS NULL, '0.0', wod.[Current Bill Rate ST Hr [ST/Hr]]]) as [current_bill_rate],
 	IIF(wod.[Hours per Week] IS NULL, '0.0', wod.[Hours per Week]) as [hours_per_week],
 	IIF(wod.[Hours per Day] IS NULL, '0.0', wod.[Hours per Day]) as [hours_per_day],
 	IIF(wod.[Allocation %] IS NULL, '0.0', wod.[Allocation %]) as [allocation_percentage],
 	IIF(wod.[Cumulative Committed Spend] IS NULL, '0.0', wod.[Cumulative Committed Spend]) as [cumulative_committed_spend],
-	IIF(wod.[Spend to Date] IS NULL, '0.0', wod.[Spend to Date])  as [spend_to_date],
+	IIF(wod.[Spend to Date] IS NULL, '0.0', wod.[Spend to Date]) as [spend_to_date],
 	IIF(wod.[Other Pending Spend] IS NULL, '0.0', wod.[Other Pending Spend])  as [other_pending_spend],
 	IIF(wod.[Remaining Spend] IS NULL, '0.0', wod.[Remaining Spend]) as [remaining_spend],
 	IIF(wod.[Work Order Tenure] IS NULL, '0.0', wod.[Work Order Tenure]) as [work_order_tenure],
@@ -2298,7 +2298,7 @@ LEFT JOIN [dbo].[contractor] as con
 ORDER BY wod.[Work Order ID], wod.[Revision #]
 ;
 
-CREATE CLUSTERED INDEX idx_work_order_composite ON #TMP_WORK_ORDER ([work_order_composite])
+CREATE CLUSTERED INDEX idx_work_order_composite ON #TMP_WORK_ORDER ([work_order_composite]);
 
 --SELECT * FROM #TMP_WORK_ORDER
 
@@ -2795,43 +2795,6 @@ WHEN NOT MATCHED THEN
 
 
 
-
-
-SELECT * FROM [dbo].[vw_forecast_full]
-WHERE [Forecast ID] IN (1026, 1027)
-;
-
-
-SELECT *
-FROM 
-
-
-SELECT *,
-	[FCSTPOID],
-	[FCSTID],
-	[Cost Center Code],
-	[Account Code],
-	[Purchase Order Number],
-	CONCAT(tag.[Cost Center Code], '-', tag.[Account Code], '-', tag.[Purchase Order Number]) as [po_composite]
-FROM [Compiler].[mart].[FCSTID_PO] as tag
-
---•	PO + WBS Element(Cost Object)
---o	For WBS Element: If it starts with F or is blank, then OpEX. Everything else is Capex
-
-
-SELECT TOP 100 *
-FROM [dbo].[forecast] as f
-;
-
-
-SELECT *
-FROM [Compiler].[mart].[RollingF] as rf
-
-
-SELECT * FROM [Compiler].[mart].[msa_RollingF]
-
-
-
 -- find all the work orders and their po numbers
 -- we don't have a forecast id yet
 DROP TABLE IF EXISTS #TMP_PO_COC;
@@ -2859,6 +2822,8 @@ SELECT DISTINCT
 	f.[work_order_id],
 	f.[cost_object_code_id],
 	coc.[cost_object_code],
+	f.[cost_center_code_id],
+	f.[account_code_id],
 	CAST(CONCAT(f.[work_order_id], '-',coc.[cost_object_code]) AS VARCHAR(250)) as [work_order_cost_object_composite],
 	ROW_NUMBER() OVER (PARTITION BY f.[work_order_id], coc.[cost_object_code] ORDER BY f.[forecast_id]) as dedupe
 INTO #TMP_FORECAST_WO_COC
@@ -2879,6 +2844,8 @@ SELECT
 	f.[work_order_id],
 	f.[cost_object_code_id],
 	f.[cost_object_code],
+	f.[cost_center_code_id],
+	f.[account_code_id],
 	wo.[purchase_order_number],
 	wo.[po_cost_object_composite],
 	ROW_NUMBER() OVER (PARTITION BY wo.[po_cost_object_composite] ORDER BY f.[forecast_id]) as dedupe
@@ -2891,12 +2858,16 @@ ORDER BY 4
 
 -- insert records
 INSERT INTO [dbo].[auto_tag]
-           ([cost_object_code_id]
+           ([cost_center_code_id]
+		   ,[account_code_id]
+		   ,[cost_object_code_id]
            ,[purchase_order_number]
            ,[po_cost_object_composite]
            ,[forecast_id]
 		   )
 SELECT
+	t.[cost_center_code_id], 
+	t.[account_code_id],
 	t.[cost_object_code_id],
 	t.[purchase_order_number],
 	t.[po_cost_object_composite],
