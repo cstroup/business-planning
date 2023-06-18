@@ -60,6 +60,12 @@ class App:
         self.filter_po_number = None
         self.filter_dept_code = None
         self.filter_bu = None
+        # Auto Tagger Filters
+        self.tab2_filter_forecast_id = None
+        self.tab2_filter_cc_code = None
+        self.tab2_filter_account_code = None
+        self.tab2_filter_po_number = None
+        self.tab2_filter_co_code = None
         # Full Forecast Filters
         self.filter_year_forecast = None
         self.filter_dept_code_frcst = None
@@ -231,8 +237,7 @@ class App:
     
     
     
-    def return_query_into_dict(self, sql_query):
-        
+    def return_query_into_dict(self, sql_query):      
         # Initialize dictionary with default entry
         final_dict = {'': 0}
     
@@ -248,6 +253,21 @@ class App:
             final_dict[str(row[1])] = row[0]  # convert key to string
     
         return final_dict
+
+
+    def refresh_all_forecast_tables(self): 
+        # self.refresh_all_forecast_tables()
+        # run this function to refresh all forecast tables
+        # TAB #1 BOTTOM TABLE
+        self.create_forecast_table_tab_1()
+
+        # TAB #3 TOP TABLE
+        self.create_full_forecast_table_tab3()
+        # TAB #3 BOTTOM TABLE
+        self.create_forecast_line_item_table_tab3()
+
+        # TAB #4 BOTTOM RIGHT TABLE
+        self.create_filtered_forecast_table_tab_4()
 
 
 
@@ -608,20 +628,22 @@ class App:
         
         # Business Unit 
         bu_keys = list(self.dropdown_values['Business Unit'].keys())
-        # bu_values = list(self.dropdown_values['Business Unit'].values())
-        
         self.bu_label = tk.Label(self.tab1_top_frame_filters, text="Business Unit:", bg='#DCDAD5')
         self.bu_label.pack(side="left", padx=(10, 5), pady=5,)
         self.bu_var = tk.StringVar()
         self.bu_var.set(bu_keys[0])
         self.bu_dropdown = ttk.Combobox(self.tab1_top_frame_filters, textvariable=bu_keys, values=bu_keys, width=30, height=20)
-        #self.server_option.configure(state="disabled")
         self.bu_dropdown.pack(side="left", padx=(5, 15), pady=5,)
         self.filter_bu = self.bu_var.get()
-        
-        
+
+
+        # CREATE BUTTONS FRAME
+        self.tab1_apply_filters_frame = Frame(self.tab1_top_frame, bg='#DCDAD5') # bg='#FFFFFF'
+        self.tab1_apply_filters_frame.pack(side='top', pady=5, fill='x', expand=False)
+
+
         # Apply Filters Button
-        gl_apply_filter_button = ttk.Button(self.tab1_top_frame_filters, text="Apply Filters", command=self.refresh_gl_forecast_tables_tab1)
+        gl_apply_filter_button = ttk.Button(self.tab1_apply_filters_frame, text="Apply Filters", command=self.refresh_gl_forecast_tables_tab1)
         gl_apply_filter_button.pack(side='left', padx=(15, 5), pady=10, anchor='w')
         self.gl_apply_filter_button = gl_apply_filter_button
         
@@ -1320,18 +1342,7 @@ class App:
     
     
     
-    def save_insert_forecast_data(self, gl_id, entry_fields):
-        # # Get the values from the entry boxes
-        # for i, widget in enumerate(entry_fields):
-        #     # Check if the widget is an Entry or a Combobox
-        #     if isinstance(widget, ttk.Entry) or isinstance(widget, ttk.Combobox):
-        #         print(str(i) + ": " + str(widget.get()))
-        #     elif isinstance(widget, tk.Text):
-        #         print(str(i) + ": " + widget.get("1.0", tk.END).strip())  # Trim whitespace from the end
-
-        # ['Business Unit', 'Location', 'Site', 'Work Type', 'Worker Status', 'Work Order Category', 
-        # 'Expense Classification', 'Segmentation', 'Platform', 'Function'] 
-       
+    def save_insert_forecast_data(self, gl_id, entry_fields):       
         comment_value = entry_fields[14].get("1.0", tk.END).strip().replace("'", "''") or '' # comment value 
         bu_value = self.dropdown_values['Business Unit'][entry_fields[15].get()] # entry_fields[15].get() or '' # business unit value
         department_leader_value = entry_fields[16].get().replace("'", "''") or ''
@@ -1365,6 +1376,7 @@ class App:
             conn = self.connect_to_db()
             cursor = conn.cursor()
             
+            # need to add 
             query = f"""
             EXEC [dbo].[sp_insert_forecast_from_gl] 
                  {gl_id}, -- gl_id
@@ -1410,8 +1422,9 @@ class App:
             
             # Close the update window
             self.insert_forecast_window.destroy()
-            
-            self.create_forecast_table_tab_1() # Refresh forecast data
+
+            self.create_gl_table_tab_1() # Refresh GL Data
+            self.refresh_all_forecast_tables() # Refresh all forecast tables
             self.create_tagger_table_tab_2() # Refresh auto tagger data
             
             tk.messagebox.showinfo("Success", "Record added successfully!")
@@ -1471,10 +1484,6 @@ class App:
         try:
             # CREATE TOP TABLE (GL TABLE)
             self.create_gl_table_tab_1()
-              
-            # CREATE BOTTOM TABLE (FORECAST TABLE)
-            # self.create_forecast_table_tab_1()
-            # don't need to recreate forecast table since nothing is updated
             
             # CREATE AUTO TAG TABLE
             self.create_tagger_table_tab_2()
@@ -1497,32 +1506,89 @@ class App:
     ##### TAB 2 #####
     #################
     def create_auto_tagger_table(self):
-        self.tab_2_button_frame = Frame(self.tab_auto_tagger, bg='#DCDAD5') # bg='#FFFFFF'
-        self.tab_2_button_frame.pack(side='top', pady=5, fill='x', expand=False)
+        # TOP FRAME ON PAGE
+        self.tab2_top_frame = Frame(self.tab_auto_tagger, bg='#DCDAD5') # bg='#FFFFFF'
+        self.tab2_top_frame.pack(side='top', pady=5, fill='x', expand=False)
+        
+        # CREATE BUTTONS FRAME
+        self.tab2_button_frame = Frame(self.tab2_top_frame, bg='#DCDAD5') # bg='#FFFFFF'
+        self.tab2_button_frame.pack(side='top', pady=5, fill='x', expand=False)
         
         # Refresh button
-        refresh_button_at = ttk.Button(self.tab_2_button_frame, text="Refresh Auto Tagger", 
+        refresh_button_at = ttk.Button(self.tab2_button_frame, text="Refresh Auto Tagger", 
                                        command=self.refresh_autotagger_tab2) # , bg='#507DBC', fg='#FFFFFF', width=15)
         refresh_button_at.pack(side='left', padx=5, pady=5, anchor='w')
         self.refresh_button_at = refresh_button_at
         
         # Edit button
-        edit_button_at = ttk.Button(self.tab_2_button_frame, text="Edit Record", 
+        edit_button_at = ttk.Button(self.tab2_button_frame, text="Edit Record", 
                                        command=self.refresh_autotagger_tab2, state="disabled")
         edit_button_at.pack(side='left', padx=5, pady=5, anchor='w')
         self.edit_button_at = edit_button_at
         
         # Delete Button
-        delete_auto_tagger_record_button = ttk.Button(self.tab_2_button_frame, text="Delete Tagger Record", 
+        delete_auto_tagger_record_button = ttk.Button(self.tab2_button_frame, text="Delete Tagger Record", 
                                           command=self.delete_auto_tagger_record, state="disabled",
                                           style="Delete.TButton")
         delete_auto_tagger_record_button.pack(side='left', padx=75, pady=5, anchor='w')
         self.delete_auto_tagger_record_button = delete_auto_tagger_record_button
         
+        
+        # Create the filter frame
+        self.tab2_filters_frame = Frame(self.tab2_top_frame, bg='#DCDAD5')
+        self.tab2_filters_frame.pack(side='top', pady=5, fill='x', expand=False)
+
+
+        # Forecast ID
+        self.tab2_forecast_id_label = tk.Label(self.tab2_filters_frame, text="Forecast ID:", bg='#DCDAD5')
+        self.tab2_forecast_id_label.pack(side="left", padx=(10, 5), pady=5,)
+        self.tab2_forecast_id_input = tk.Entry(self.tab2_filters_frame, width=20)
+        self.tab2_forecast_id_input.pack(side="left", padx=(5, 15), pady=5,)
+        self.tab2_filter_forecast_id = self.tab2_forecast_id_input.get()
+        
+        # Cost Center Code
+        self.tab2_cc_code_label = tk.Label(self.tab2_filters_frame, text="Cost Center Code:", bg='#DCDAD5')
+        self.tab2_cc_code_label.pack(side="left", padx=(10, 5), pady=5,)
+        self.tab2_cc_code_input = tk.Entry(self.tab2_filters_frame, width=20)
+        self.tab2_cc_code_input.pack(side="left", padx=(5, 15), pady=5,)
+        self.tab2_filter_cc_code = self.tab2_cc_code_input.get()
+        
+        # Account Code
+        self.tab2_account_code_label = tk.Label(self.tab2_filters_frame, text="Account Code:", bg='#DCDAD5')
+        self.tab2_account_code_label.pack(side="left", padx=(10, 5), pady=5,)
+        self.tab2_account_code_input = tk.Entry(self.tab2_filters_frame, width=20)
+        self.tab2_account_code_input.pack(side="left", padx=(5, 15), pady=5,)
+        self.tab2_filter_account_code = self.tab2_account_code_input.get()
+
+        # Purchase Order #
+        self.tab2_purchase_order_label = tk.Label(self.tab2_filters_frame, text="Purchase Order #:", bg='#DCDAD5')
+        self.tab2_purchase_order_label.pack(side="left", padx=(10, 5), pady=5,)
+        self.tab2_purchase_order_input = tk.Entry(self.tab2_filters_frame, width=20)
+        self.tab2_purchase_order_input.pack(side="left", padx=(5, 15), pady=5,)
+        self.tab2_filter_po_number = self.tab2_purchase_order_input.get()
+
+        # Cost Object Code
+        self.tab2_co_code_label = tk.Label(self.tab2_filters_frame, text="Cost Object Code:", bg='#DCDAD5')
+        self.tab2_co_code_label.pack(side="left", padx=(10, 5), pady=5,)
+        self.tab2_co_code_input = tk.Entry(self.tab2_filters_frame, width=20)
+        self.tab2_co_code_input.pack(side="left", padx=(5, 15), pady=5,)
+        self.tab2_filter_co_code = self.tab2_co_code_input.get()
+        
+
+        # Create the filter frame
+        self.tab2_apply_filters_frame = Frame(self.tab2_top_frame, bg='#DCDAD5')
+        self.tab2_apply_filters_frame.pack(side='top', pady=5, fill='x', expand=False)
+
+
+        # Apply Filters Button
+        tagger_apply_filter_button = ttk.Button(self.tab2_apply_filters_frame, text="Apply Filters", command=self.apply_auto_tagger_filters)
+        tagger_apply_filter_button.pack(side='left', padx=(15, 5), pady=10, anchor='w')
+        self.tagger_apply_filter_button = tagger_apply_filter_button
+        
         # Create the table
         self.create_tagger_table_tab_2()
         
-        
+
         
     def create_tagger_table_tab_2(self):
         if self.tab_2_table1_frame is not None:
@@ -1691,6 +1757,35 @@ class App:
                 msg = str(e)
                 print('Failed: '+ str(msg))
                 tk.messagebox.showinfo("Failed", f"The Auto Tag record {at_id} was NOT deleted. {msg}")
+    
+
+
+    def apply_auto_tagger_filters(self, event=None):
+        # Retrieve the values from the input fields
+        forecast_id = self.tab2_forecast_id_input.get().lower()
+        cost_center_code = self.tab2_cc_code_input.get().lower()
+        account_code = self.tab2_account_code_input.get().lower()
+        po_num = self.tab2_purchase_order_input.get().lower()
+        cost_obj_code = self.tab2_co_code_input.get().lower()
+    
+        # Filter the rows of the full forecast table
+        filtered_rows = [
+            row for row in self.rows_auto_tagger
+            if (not forecast_id or forecast_id in str(row['Forecast ID']).lower()) and \
+               (not cost_center_code or cost_center_code in str(row['Cost Center Code']).lower()) and \
+               (not account_code or account_code in str(row['Account Code']).lower()) and \
+               (not po_num or po_num in str(row['Purchase Order Number']).lower()) and \
+               (not cost_obj_code or cost_obj_code in str(row['Cost Object Code']).lower())
+        ]
+    
+        # Clear the existing rows in the full forecast table treeview
+        for item in self.tree_auto_tagger.get_children():
+            self.tree_auto_tagger.delete(item)
+    
+        # Add the filtered rows to the full forecast table treeview
+        for row in filtered_rows:
+            values = [row.get(col, "") for col in self.column_headers_auto_tagger]
+            self.tree_auto_tagger.insert("", "end", values=values)
          
             
             
@@ -1701,7 +1796,6 @@ class App:
         label_width = 15
         entry_width = 25
         dropdown_width = 10
-        
         
         self.tab_3_button_frame = Frame(self.tab_full_forecast, bg='#DCDAD5') # bg='#FFFFFF'
         self.tab_3_button_frame.pack(side='top', pady=5, fill='both', expand=False)
@@ -1724,8 +1818,6 @@ class App:
                                           style="Delete.TButton")
         delete_forecast_li_record_button.pack(side='left', padx=75, pady=5, anchor='w')
         self.delete_forecast_li_record_button = delete_forecast_li_record_button
-        
-
 
         
         # Create connection
@@ -1967,8 +2059,6 @@ class App:
             else:
                 for row in self.rows_full_forecast:
                     row[col] = row[col] if (row[col] is not None and not pd.isna(row[col]) and row[col] != '') else ''
-        
-        # print("Converted Data Type! \n")
 
         # create the treeview table
         self.tree_full_forecast = ttk.Treeview(self.tab_3_table1_frame, columns=self.column_headers_full_forecast,
@@ -2005,7 +2095,6 @@ class App:
         
         # this allows the delete button to appear after a row is selected
         self.tree_full_forecast.bind('<<TreeviewSelect>>', self.on_full_forecast_row_select)
-        
         
         
     def create_forecast_line_item_table_tab3(self):   
@@ -2341,18 +2430,7 @@ class App:
             tk.messagebox.showinfo("Failed", f"Error! {msg}")
             
             
-    def save_update_full_forecast_data(self, entry_fields):
-        # # Get the values from the entry boxes
-        # for i, widget in enumerate(entry_fields):
-        #     # Check if the widget is an Entry or a Combobox
-        #     if isinstance(widget, ttk.Entry) or isinstance(widget, ttk.Combobox):
-        #         print(str(i) + ": " + str(widget.get()))
-        #     elif isinstance(widget, tk.Text):
-        #         print(str(i) + ": " + widget.get("1.0", tk.END).strip())  # Trim whitespace from the end
-
-        # print(list(self.dropdown_values.keys()))
-        
-       
+    def save_update_full_forecast_data(self, entry_fields):        
         cc_value = self.dropdown_values['Company Code'][entry_fields[1].get()] # company code
         bu_value = self.dropdown_values['Business Unit'][entry_fields[2].get()] # entry_fields[15].get() or '' # business unit value
         dept_value = self.dropdown_values['Department'][entry_fields[3].get()]
@@ -2471,10 +2549,8 @@ class App:
             # Close the update window
             self.update_full_forecast_window.destroy()
             
-            # update tables
-            self.create_full_forecast_table_tab3()
-            self.create_forecast_line_item_table_tab3()
-            self.create_filtered_forecast_table_tab_4()
+            # update forecast tables
+            self.refresh_all_forecast_tables()
             
             tk.messagebox.showinfo("Success", "Record successfully updated!")
             
@@ -2485,8 +2561,6 @@ class App:
             
             
             
-    # need to make these have drop-downs
-    # gather some information from the gl and pre-populate the forecast item
     def open_insert_full_forecat_window(self):     
         try:            
             # screen_width = self.master.winfo_screenwidth() | screen_height = self.master.winfo_screenheight()
@@ -2611,20 +2685,6 @@ class App:
     
     
     def save_insert_full_forecast_data(self, entry_fields):
-        # # Get the values from the entry boxes
-        # for i, widget in enumerate(entry_fields):
-        #     # Check if the widget is an Entry or a Combobox
-        #     if isinstance(widget, ttk.Entry) or isinstance(widget, ttk.Combobox):
-        #         print(str(i) + ": " + str(widget.get()))
-        #     elif isinstance(widget, tk.Text):
-        #         print(str(i) + ": " + widget.get("1.0", tk.END).strip())  # Trim whitespace from the end
-
-        # print(list(self.dropdown_values.keys()))
-        
-        # _value = self.dropdown_values[''][entry_fields[].get()]
-        # _value = entry_fields[17].get() or ''
-        # self.filter_year_forecast 
-       
         cc_value = self.dropdown_values['Company Code'][entry_fields[0].get()] # company code
         bu_value = self.dropdown_values['Business Unit'][entry_fields[1].get()] # entry_fields[15].get() or '' # business unit value
         dept_value = self.dropdown_values['Department'][entry_fields[2].get()]
@@ -2741,11 +2801,9 @@ class App:
             
             # Close the update window
             self.insert_full_forecast_window.destroy()
-            
 
-            self.create_full_forecast_table_tab3()
-            self.create_forecast_line_item_table_tab3()
-            self.create_filtered_forecast_table_tab_4()
+            # update forecast tables
+            self.refresh_all_forecast_tables()
             
             tk.messagebox.showinfo("Success", "Record added successfully!")
             
@@ -2780,12 +2838,12 @@ class App:
                 print(query_forecast)
                 cursor.execute(query_forecast)
                 conn.commit()
-        
-                # Update the Treeview to remove the deleted row
-                self.tree_full_forecast.delete(self.tree_full_forecast.selection())
+
+                # update forecast tables
+                self.refresh_all_forecast_tables()
         
                 # Reset the selected_row
-                self.delete_forecast_li_record_button.config(state='disabled')
+                self.delete_forecast_li_record_button.config(state='disabled')                
         
                 # Show a message box with a confirmation message
                 tk.messagebox.showinfo("Record Deleted", f"The Forecast record {ff_id} has been deleted successfully.")
@@ -2813,6 +2871,10 @@ class App:
         file_types = [('CSV files', '*.csv'), ('Text files', '*.txt'), ('All files', '*.*')]
         file_path = asksaveasfile(initialfile = f"full_forecast_data_{current_date}.csv", 
                                   defaultextension=".csv", filetypes=file_types)
+
+        # CREATE A SQL QUERY INSTEAD OF EXPORTING FROM TABLE
+        # INCLUDE FILTERS
+
         if file_path:
             with open(file_path.name, 'w', newline='') as file:
                 file_path = file_path.name # get the file path string
@@ -2835,6 +2897,7 @@ class App:
             """)
             conn.commit()
        
+
                 
     #################
     ##### TAB 4 #####
@@ -3297,7 +3360,7 @@ class App:
             tk.messagebox.showinfo("Failed", f"Work Order data NOT refreshed successfully! {msg}")
     
     
-    # Find Work Order Details
+
     def edit_wo_details_tab4(self):
         try:
             pass
@@ -3456,15 +3519,14 @@ class App:
         """)
         
         try:
-            # conn.commit()
-            # cursor.execute(query)
+            conn.commit()
+            cursor.execute(query)
             
-            # Update the Treeview to remove the deleted row
-            self.tree_new_work_orders.delete(self.tree_new_work_orders.selection())
-            
-            # refresh tables at the end
+            # refresh wo table
             self.create_work_order_table_tab_4()
-            self.create_filtered_forecast_table_tab_4()
+
+            # update forecast tables
+            self.refresh_all_forecast_tables()
             
             self.tab_4_add_wo_to_forecast_button.config(state="disabled")
             
@@ -3729,12 +3791,10 @@ class App:
             # Close the update window
             self.update_filtered_forecast_window.destroy()
             
-            # update tables
-            self.create_full_forecast_table_tab3()
-            self.create_forecast_line_item_table_tab3()
-            self.create_filtered_forecast_table_tab_4()
+            # update forecast tables
+            self.refresh_all_forecast_tables()
             
-            tk.messagebox.showinfo("Success", "Record successfully updated!")
+            tk.messagebox.showinfo("Success", f"Record ID {self.filtered_forecast_id} successfully updated!")
             
         except Exception as e:
             msg = str(e)
@@ -3935,7 +3995,6 @@ class App:
             self.upload_label.grid(row=5, column=1, columnspan=5, padx=5, pady=20, sticky='w')
             self.admin_frame.update()
             print('Records left: ' + str(counter) + ' Rows Inserted: ' + str(rows_inserted) + '\n')
-            
             
             
             
