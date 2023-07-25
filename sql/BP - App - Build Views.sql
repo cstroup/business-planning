@@ -1,4 +1,7 @@
-USE TEST;
+--USE TEST;
+--GO
+
+USE PLANNING_APP;
 GO
 
 DROP VIEW IF EXISTS vw_auto_tagger_full;
@@ -243,6 +246,38 @@ PIVOT (
 GO
 ;
 
+SELECT 
+	ff.[Forecast ID]
+	,ff.[Contractor]
+	,ff.[Worker ID]
+	,ff.[PID]
+	,ff.[Work Order ID]
+	,ff.[Description]
+	,ff.[Comment]
+	,fli.forecast_line_item_id as [Line Item ID]
+	,dd.[short_month_short_year] as [Date]
+	,fli.forecast as [Forecast Amount]
+	,fli.budget as [Budget]
+	,fli.q1f as [Q1F]
+	,fli.q2f as [Q2F]
+	,fli.q3f as [Q3F]
+	,fli.forecast_spring as [Spring Forecast]
+	,fli.forecast_summer as [Summer Forecast]
+	,fli.actual as [Actual]
+	,fli.[is_actualized] as [Is Actualized]
+FROM [vw_forecast_full] as ff
+JOIN [dbo].[forecast_line_item] as fli
+	ON ff.[Forecast ID] = fli.forecast_id
+JOIN [dbo].[date_dimension] as dd
+	ON fli.date_id = dd.date_id
+WHERE fli.[is_deleted] = 0
+ORDER BY [Forecast ID], fli.date_id
+
+
+SELECT [forecasting_month], [short_month_short_year], [calendar_year_month]
+FROM [dbo].[date_dimension]
+GROUP BY [forecasting_month], [short_month_short_year], [calendar_year_month]
+ORDER BY [calendar_year_month]
 
 --DROP VIEW IF EXISTS vw_forecast_line_items_v2;
 --GO

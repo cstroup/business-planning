@@ -1,4 +1,7 @@
-USE TEST;
+--USE TEST;
+--GO
+
+USE PLANNING_APP
 GO
 
 DROP PROCEDURE IF EXISTS [dbo].[sp_insert_record_auto_tag];
@@ -1915,13 +1918,6 @@ GO
 
 
 
--- EXEC [dbo].[sp_insert_work_order_into_forecast] 71645, 2023, '486.40', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0';         
-
--- SELECT * FROM [dbo].[forecast] ORDER BY 1 DESC
-
---SELECT * FROM [dbo].[forecast_line_item_v2]
---WHERE forecast_id = (SELECT MAX(forecast_id) FROM [dbo].[forecast])
-
 DROP PROCEDURE IF EXISTS [dbo].[sp_insert_work_order_into_forecast];
 GO
 CREATE PROCEDURE [dbo].[sp_insert_work_order_into_forecast]
@@ -2051,6 +2047,14 @@ BEGIN
 			   ([forecast_id]
 			   ,[date_id]
 			   ,[amount]
+			   ,[forecast]
+			   ,[budget]
+			   ,[q1f]
+			   ,[q2f]
+			   ,[q3f]
+			   ,[forecast_spring]
+			   ,[forecast_summer]
+			   ,[actual]
 			   ,[is_deleted]
 			   ,[is_actualized]
 			   ,[created_by]
@@ -2061,6 +2065,14 @@ BEGIN
 		@new_forecast_id as [forecast_id],
 		[date_id] as date_id,
 		[amount] as [amount],
+		[amount] as [forecast],
+		0 as budget,
+		0 as [q1f],
+		0 as [q2f],
+		0 as [q3f],
+		0 as [forecast_spring],
+		0 as [forecast_summer],
+		0 as [actual],
 		0 as [is_deleted],
 		0 as [is_actualized],
 		CURRENT_USER as [created_by],
@@ -2070,84 +2082,108 @@ BEGIN
 	FROM
 		(SELECT 
 			MIN(first_of_month_date_key) as date_id,
-			IIF(LEN(@jan) = 0, '0', @jan) as [amount]
+			IIF(LEN(@jan) = 0, 0.00, TRY_CAST(REPLACE(@jan,',', '') AS FLOAT)) as [amount],
+			@jan as raw_value,
+			(SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id) as cal_year
 		FROM [dbo].[date_dimension] as dd
 		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
 		AND dd.month_name = 'January'
 		UNION
 		SELECT 
 			MIN(first_of_month_date_key) as date_id,
-			IIF(LEN(@feb) = 0, '0', @feb) as [amount]
+			IIF(LEN(@feb) = 0, 0.00, TRY_CAST(REPLACE(@feb,',', '') AS FLOAT)) as [amount],
+			@feb as raw_value,
+			(SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id) as cal_year
 		FROM [dbo].[date_dimension] as dd
 		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
 		AND dd.month_name = 'February'
 		UNION 
 		SELECT 
 			MIN(first_of_month_date_key) as date_id,
-			IIF(LEN(@mar) = 0, '0', @mar) as [amount]
+			IIF(LEN(@mar) = 0, 0.00, TRY_CAST(REPLACE(@mar,',', '') AS FLOAT)) as [amount],
+			@mar as raw_value,
+			(SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id) as cal_year
 		FROM [dbo].[date_dimension] as dd
 		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
 		AND dd.month_name = 'March'
 		UNION 
 		SELECT 
 			MIN(first_of_month_date_key) as date_id,
-			IIF(LEN(@apr) = 0, '0', @apr) as [amount]
+			IIF(LEN(@apr) = 0, 0.00, TRY_CAST(REPLACE(@apr,',', '') AS FLOAT)) as [amount],
+			@apr as raw_value,
+			(SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id) as cal_year
 		FROM [dbo].[date_dimension] as dd
 		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
 		AND dd.month_name = 'April'
 		UNION 
 		SELECT 
 			MIN(first_of_month_date_key) as date_id,
-			IIF(LEN(@may) = 0, '0', @may) as [amount]
+			IIF(LEN(@may) = 0, 0.00, TRY_CAST(REPLACE(@may,',', '') AS FLOAT)) as [amount],
+			@may as raw_value,
+			(SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id) as cal_year
 		FROM [dbo].[date_dimension] as dd
 		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
 		AND dd.month_name = 'May'
 		UNION 
 		SELECT 
 			MIN(first_of_month_date_key) as date_id,
-			IIF(LEN(@jun) = 0, '0', @jun) as [amount]
+			IIF(LEN(@jun) = 0, 0.00, TRY_CAST(REPLACE(@jun,',', '') AS FLOAT)) as [amount],
+			@jun as raw_value,
+			(SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id) as cal_year
 		FROM [dbo].[date_dimension] as dd
 		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
 		AND dd.month_name = 'June'
 		UNION 
 		SELECT 
 			MIN(first_of_month_date_key) as date_id,
-			IIF(LEN(@jul) = 0, '0', @jul) as [amount]
+			IIF(LEN(@jul) = 0, 0.00, TRY_CAST(REPLACE(@jul,',', '') AS FLOAT)) as [amount],
+			@jul as raw_value,
+			(SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id) as cal_year
 		FROM [dbo].[date_dimension] as dd
 		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
 		AND dd.month_name = 'July'
 		UNION 
 		SELECT 
 			MIN(first_of_month_date_key) as date_id,
-			IIF(LEN(@aug) = 0, '0', @aug) as [amount]
+			IIF(LEN(@aug) = 0, 0.00, TRY_CAST(REPLACE(@aug,',', '') AS FLOAT)) as [amount],
+			@aug as raw_value,
+			(SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id) as cal_year
 		FROM [dbo].[date_dimension] as dd
 		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
 		AND dd.month_name = 'August'
 		UNION 
 		SELECT 
 			MIN(first_of_month_date_key) as date_id,
-			IIF(LEN(@sep) = 0, '0', @sep) as [amount]
+			IIF(LEN(@sep) = 0, 0.00, TRY_CAST(REPLACE(@sep,',', '') AS FLOAT)) as [amount],
+			@sep as raw_value,
+			(SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id) as cal_year
 		FROM [dbo].[date_dimension] as dd
 		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
 		AND dd.month_name = 'September'
 		UNION 
 		SELECT 
 			MIN(first_of_month_date_key) as date_id,
-			IIF(LEN(@oct) = 0, '0', @oct) as [amount]
+			IIF(LEN(@oct) = 0, 0.00, TRY_CAST(REPLACE(@oct,',', '') AS FLOAT)) as [amount],
+			@oct as raw_value,
+			(SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id) as cal_year
 		FROM [dbo].[date_dimension] as dd
 		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
 		AND dd.month_name = 'October'
 		UNION 
 		SELECT 
 			MIN(first_of_month_date_key) as date_id,
-			IIF(LEN(@nov) = 0, '0', @nov) as [amount]
+			IIF(LEN(@nov) = 0, 0.00, TRY_CAST(REPLACE(@nov,',', '') AS FLOAT)) as [amount],
+			@nov as raw_value,
+			(SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id) as cal_year
 		FROM [dbo].[date_dimension] as dd
 		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
 		AND dd.month_name = 'November'
 		UNION 
 		SELECT 
 			MIN(first_of_month_date_key) as date_id,
-			IIF(LEN(@dec) = 0, '0', @dec) as [amount]
+			IIF(LEN(@dec) = 0, 0.00, TRY_CAST(REPLACE(@dec,',', '') AS FLOAT)) as [amount],
+			@dec as raw_value,
+			(SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id) as cal_year
 		FROM [dbo].[date_dimension] as dd
 		WHERE dd.[calendar_year] = (SELECT LEFT(MIN(worker_start_date_id), 4) FROM [dbo].[work_order] as wo WHERE wo.[id] = @wo_id)
 		AND dd.month_name = 'December'

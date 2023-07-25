@@ -1,9 +1,12 @@
-USE [TEST]
+--USE [TEST]
+--GO
+USE [REPORTING]
 GO
 
 --CREATE SCHEMA [staging];
 --GO
 
+DROP TABLE IF EXISTS [staging].[allocations_timesheets];
 CREATE TABLE [staging].[allocations_timesheets](
 	[Time Sheet ID] [nvarchar](254) NULL,
 	[PID] [nvarchar](254) NULL,
@@ -33,10 +36,16 @@ CREATE TABLE [staging].[allocations_timesheets](
 	[Time Sheet Status] [nvarchar](254) NULL,
 	[Time Sheet End Date] [nvarchar](254) NULL,
 	[Time Sheet Submit Date] [nvarchar](254) NULL,
-	[Revision #] [nvarchar](254) NULL
+	[Revision #] [nvarchar](254) NULL,
+	[Cumulative Spend to Date] [float] NULL,
+	[Other Pending Spend] [float] NULL,
+	[Remaining Estimated Hours] [float] NULL,
+	[Spend to Date] [float] NULL,
+	[Worker Type] [varchar](255) NULL
 ) ON [PRIMARY]
 GO
 
+DROP TABLE IF EXISTS [staging].[contractor_active_report];
 CREATE TABLE [staging].[contractor_active_report](
 	[Worker PID] [varchar](255) NULL,
 	[Worker] [nvarchar](255) NULL,
@@ -52,6 +61,7 @@ CREATE TABLE [staging].[contractor_active_report](
 ) ON [PRIMARY]
 GO
 
+DROP TABLE IF EXISTS [staging].[contractor_details];
 CREATE TABLE [staging].[contractor_details](
 	[Worker] [nvarchar](255) NULL,
 	[PID] [varchar](255) NULL,
@@ -79,10 +89,28 @@ CREATE TABLE [staging].[contractor_details](
 	[Worker - Cumulative Committed Spend] [float] NULL,
 	[Work Order End Date] [date] NULL,
 	[Work Order Original End Date] [date] NULL,
-	[Maximum Worker End Date] [varchar](255) NULL
+	[Maximum Worker End Date] [varchar](255) NULL,
+	[Cost Object] [varchar](255) NULL,
+	[Cumulative Spend to Date] [float] NULL,
+	[Other Pending Spend] [float] NULL,
+	[Remaining Estimated Hours] [float] NULL,
+	[Spend to Date] [float] NULL,
+	[Worker Type] [varchar](255) NULL
 ) ON [PRIMARY]
 GO
 
+DROP TABLE IF EXISTS [staging].[wbs_codes];
+CREATE TABLE [staging].[wbs_codes](
+	[Year] [float] NULL,
+	[Appropriation Request] [varchar](255) NULL,
+	[Initiative] [nvarchar](255) NULL,
+	[WBS Code] [varchar](255) NULL,
+	[BU Initiative] [varchar](255) NULL,
+	[Funding Group] [varchar](255) NULL,
+	[Planner] [varchar](255) NULL,
+	[Business Owner] [varchar](255) NULL
+) ON [PRIMARY]
+GO
 
 
 

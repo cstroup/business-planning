@@ -1,5 +1,11 @@
-USE TEST
+--USE TEST
+--GO
+
+USE PLANNING_APP
 GO
+
+--CREATE SCHEMA [audit];
+--GO
 
 
 DROP TABLE IF EXISTS [audit].[user_actions];
@@ -35,4 +41,21 @@ GO
 ;
 CREATE INDEX idx_etl_executions_requested_date ON [audit].[etl_executions] ([requested_date]);
 CREATE INDEX idx_etl_executions_completed_date ON [audit].[etl_executions] ([completed_date]);
+
+
+DROP TABLE IF EXISTS [audit].[etl_bulk_edits];
+CREATE TABLE [audit].[etl_bulk_edits](
+	[etl_bulk_edits_id] bigint IDENTITY(1000,1) PRIMARY KEY,
+	-- non FKs
+	[bulk_edit_job] [nvarchar](100) NULL,
+	[table_updating] [nvarchar](100) NULL,
+	[action_flag] [nvarchar](100) NULL,
+	[reason] [nvarchar](100) NULL,
+	[submitted_by] [nvarchar](100) DEFAULT CURRENT_USER,
+	[submission_date] DATETIME DEFAULT CURRENT_TIMESTAMP,
+) ON [PRIMARY]
+GO
+;
+--CREATE INDEX idx_etl_executions_requested_date ON [audit].[etl_executions] ([requested_date]);
+--CREATE INDEX idx_etl_executions_completed_date ON [audit].[etl_executions] ([completed_date]);
         

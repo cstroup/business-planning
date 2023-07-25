@@ -9,9 +9,9 @@ import pyodbc
 
 # Set up the connection string
 server = 'business-planning-proxy.spectrumtoolbox.com'
-database = 'TEST'
+database = 'PLANNING_APP' # Compiler | TEST | PLANNING_APP
 username = 'admin'
-password = ''
+password = 'daJQ6bW4NQ4!9xAKCAaX'
 conn_str = f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password}"
 
 # Connect to the database
@@ -20,8 +20,10 @@ cnxn = pyodbc.connect(conn_str)
 # Set up the cursor
 cursor = cnxn.cursor()
 
+schema = 'dbo'
+
 # Define the query to retrieve the table names
-query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = 'dbo' ORDER BY 1"
+query = f"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = '{schema}' ORDER BY 1"
 
 cursor.execute(query)
 rows = cursor.fetchall()
@@ -32,7 +34,7 @@ for i in rows:
     table_name = i[0]
     # print(table_name)
     query_table = f"""
-    SELECT count(*) FROM [TEST].[dbo].[{table_name}]
+    SELECT count(*) FROM {database}.[{schema}].[{table_name}]
     """
     # print(query_table)
     cursor.execute(query_table)

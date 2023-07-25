@@ -1,4 +1,7 @@
-USE TEST
+--USE TEST
+--GO
+
+USE PLANNING_APP
 GO
 
 -- STAGING TABLES
@@ -1100,7 +1103,7 @@ SELECT DISTINCT
       [Company Type],
       [Legal Entity Name],
       [Company Number]
-FROM [TEST].[staging].[company_code]
+FROM [staging].[company_code]
 ORDER BY 1
 ;
 
@@ -1175,7 +1178,7 @@ SELECT DISTINCT
 	TRY_CAST(SUBSTRING([Cost Center Code], 4, 4)as numeric),
 	TRY_CAST(RIGHT([Cost Center Code], 3) as numeric),
 	[Cost Center Code]
-FROM [Compiler].[mart].[RollingF] as r
+FROM [Compiler].[snap].[RollingF 7.14.23] as r -- [Compiler].[mart].[RollingF] as r
 JOIN [dbo].[company_code] as cc
 	ON LEFT(r.[Cost Center Code], 3) = cc.[raw]
 LEFT JOIN [dbo].[cost_center_code] as ccc
@@ -1201,7 +1204,7 @@ SELECT DISTINCT
 		ELSE 0
 	END as [is_opex],
 	[WBS Element]
-FROM [TEST].[staging].[sap_general_ledger]
+FROM [staging].[sap_general_ledger]
 WHERE [WBS Element] IS NOT NULL
 ORDER BY 1
 ;
@@ -1220,7 +1223,7 @@ SELECT DISTINCT
 		ELSE 0
 	END as [is_opex],
 	[Cost Object Code]
-FROM [Compiler].[mart].[RollingF] as r
+FROM [Compiler].[snap].[RollingF 7.14.23] as r -- [Compiler].[mart].[RollingF] as r
 LEFT JOIN [dbo].[cost_object_code] as coc
 	ON r.[Cost Object Code] = coc.[raw]
 WHERE [Cost Object Code] IS NOT NULL
@@ -1390,8 +1393,6 @@ AND dd.week_of_month = lw.last_week
 AND ld.last_day_of_week < 5
 ORDER BY 1,2,3
 ;
-
-
 
 UPDATE [dbo].[date_dimension]
 SET [date_dimension].forecasting_month = CONCAT(FORMAT(t.next_month, 'MMM'), '-', RIGHT(YEAR(t.next_month), 2))
@@ -1585,28 +1586,28 @@ INSERT INTO [dbo].[employee]
 SELECT DISTINCT
 	[Department Leader] as employee,
 	[Department Leader] as raw
-FROM [Compiler].[mart].[RollingF]
+FROM [Compiler].[snap].[RollingF 7.14.23] -- [Compiler].[mart].[RollingF]
 WHERE [Department Leader] IS NOT NULL
 AND [Department Leader] NOT IN ('')
 UNION
 SELECT DISTINCT
 	[Team Leader] as employee,
 	[Team Leader] as raw
-FROM [Compiler].[mart].[RollingF]
+FROM [Compiler].[snap].[RollingF 7.14.23] -- [Compiler].[mart].[RollingF]
 WHERE [Team Leader] IS NOT NULL
 AND [Team Leader] NOT IN ('')
 UNION
 SELECT DISTINCT
 	[Business Owner] as employee,
 	[Business Owner] as raw
-FROM [Compiler].[mart].[RollingF]
+FROM [Compiler].[snap].[RollingF 7.14.23] -- [Compiler].[mart].[RollingF]
 WHERE [Business Owner] IS NOT NULL
 AND [Business Owner] NOT IN ('')
 UNION
 SELECT DISTINCT
 	[Worker: New Primary Contact],
 	[Worker: New Primary Contact]
-FROM [Compiler].[mart].[RollingF]
+FROM [Compiler].[snap].[RollingF 7.14.23] -- [Compiler].[mart].[RollingF]
 WHERE [Worker: New Primary Contact] IS NOT NULL
 AND [Worker: New Primary Contact] NOT IN ('', '0')
 UNION
@@ -1675,6 +1676,7 @@ FROM [staging].[company_entity] as ce
 LEFT JOIN [dbo].[company_code] as cc
 	ON ce.[Company Code] = cc.[raw]
 ORDER BY 2
+;
 
 
 
@@ -1685,7 +1687,7 @@ INSERT INTO [dbo].[expense_classification]
 SELECT DISTINCT
 	[Expense Classification],
 	[Expense Classification]
-FROM [Compiler].[mart].[RollingF]
+FROM [Compiler].[snap].[RollingF 7.14.23] -- [Compiler].[mart].[RollingF]
 WHERE [Expense Classification] IS NOT NULL
 AND [Expense Classification] NOT IN ('')
 ORDER BY 1
@@ -1791,7 +1793,7 @@ UNION
 SELECT DISTINCT
 	[Main Document Title],
 	CAST([Main Document Title] as VARCHAR(254))
-FROM [Compiler].[mart].[RollingF]
+FROM [Compiler].[snap].[RollingF 7.14.23] -- [Compiler].[mart].[RollingF]
 WHERE [Main Document Title] IS NOT NULL
 AND [Main Document Title] NOT IN ('')
 --AND LEN([Main Document Title]) > 250
@@ -1806,7 +1808,7 @@ INSERT INTO [dbo].[platform]
 SELECT DISTINCT 
 	[platform], 
 	[platform] 
-FROM [Compiler].[mart].[RollingF] 
+FROM [Compiler].[snap].[RollingF 7.14.23] -- [Compiler].[mart].[RollingF] 
 WHERE len(Platform) > 1
 UNION
 SELECT 
@@ -1847,6 +1849,7 @@ SELECT DISTINCT
 	,[Project]
 FROM [Compiler].[mart].[SAP GL Unformatted]
 WHERE [Project] is not null
+AND LEN([Project]) > 0
 ORDER BY 1
 ;
 
@@ -1891,7 +1894,7 @@ INSERT INTO [dbo].[segmentation]
 SELECT DISTINCT 
 	[Segmentation],
 	[Segmentation]
-FROM [Compiler].[mart].[RollingF]
+FROM [Compiler].[snap].[RollingF 7.14.23] -- [Compiler].[mart].[RollingF]
 WHERE [Segmentation] IS NOT NULL
 AND [Segmentation] NOT IN ('')
 UNION
@@ -1970,7 +1973,7 @@ FROM
 		[Budget Code],
 		[Budget Code] as budget_name,
 		prd.[budget_code]
-	FROM [Compiler].[mart].[RollingF] as f
+	FROM [Compiler].[snap].[RollingF 7.14.23] as f -- [Compiler].[mart].[RollingF] as f
 	LEFT JOIN [dbo].[budget_code] as prd
 		ON f.[Budget Code] = prd.[raw]
 	WHERE f.[Budget Code] IS NOT NULL
@@ -2014,7 +2017,7 @@ FROM
 (SELECT DISTINCT
 	[Supplier],
 	[Supplier] as raw
-FROM [Compiler].[mart].[RollingF]
+FROM [Compiler].[snap].[RollingF 7.14.23] -- [Compiler].[mart].[RollingF]
 WHERE [Supplier] IS NOT NULL
 AND [Supplier] != ''
 UNION
@@ -2185,7 +2188,7 @@ UNION
 SELECT DISTINCT
 	[Work Type],
 	[Work Type]
-FROM [Compiler].[mart].[RollingF]
+FROM [Compiler].[snap].[RollingF 7.14.23] -- [Compiler].[mart].[RollingF]
 WHERE [Work Type] IS NOT NULL
 AND [Work Type] NOT IN ('15263')
 ORDER BY 1
@@ -2199,7 +2202,7 @@ INSERT INTO [dbo].[worker_status]
 SELECT DISTINCT
 	[Worker Status],
 	[Worker Status]
-FROM [Compiler].[mart].[RollingF]
+FROM [Compiler].[snap].[RollingF 7.14.23] -- [Compiler].[mart].[RollingF]
 WHERE [Worker Status] IS NOT NULL
 ORDER BY 1
 ;
@@ -2210,7 +2213,6 @@ UPDATE [dbo].[worker_status]
 SET worker_status = NULL
 WHERE [raw] IN ('Hardware - Capex', 'Software - Capex', 'Opex - Direct', 'Opex - Software')
 ;
-
 
 UPDATE [dbo].[worker_status]
 SET worker_status = 'Active - Pending Conversion'
@@ -2510,7 +2512,7 @@ SELECT
 	CURRENT_TIMESTAMP AS [updated_date],
 	ROW_NUMBER() OVER (PARTITION BY rf.FCSTID ORDER BY rf.FCSTID) AS dedupe
 INTO #TMP_FORECAST
-FROM [Compiler].[mart].[RollingF] as rf
+FROM [Compiler].[snap].[RollingF 7.14.23] as rf -- [Compiler].[mart].[RollingF] as rf
 LEFT JOIN #TMP_UNIQUE_CONTRACTORS as tmp -- first take work order
 	ON rf.[Work Order ID] = tmp.[work_order_id]
 LEFT JOIN [dbo].[company_code] as cc
@@ -2671,7 +2673,7 @@ SELECT
 	dd.[date_id],
 	rf.value as [amount],
 	CASE
-		WHEN dd.[date_id] <= 20230301
+		WHEN dd.[date_id] <= 2023001
 		THEN 1
 		ELSE 0
 	END as [is_actual],
@@ -2881,6 +2883,10 @@ ORDER BY 4
 ;
 GO
 
+--UPDATE [dbo].[general_ledger]
+--SET [general_ledger].[auto_tag_id] = NULL
+
+
 
 -- this should only update contractors
 -- the po number to cost object should only apply to contractors and takes priority
@@ -2912,6 +2918,12 @@ JOIN [dbo].[forecast] as f
 AND f.[is_deleted] = 0
 ;
 
+-- SELECT * FROM #TMP_OLD_GL_FORECAST_MANUAL
+--select *
+--from [dbo].[general_ledger] 
+--join  #TMP_OLD_GL_FORECAST_MANUAL as t
+--	on t.je = [general_ledger].[journal_entry]
+--	AND t.je_li = [general_ledger].[journal_entry_item]
 
 UPDATE [dbo].[general_ledger]
 SET [general_ledger].[forecast_id] = t.[forecast_id]

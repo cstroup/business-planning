@@ -1,4 +1,7 @@
-USE TEST
+--USE TEST
+--GO
+
+USE PLANNING_APP
 GO
 
 --CREATE SCHEMA [audit];

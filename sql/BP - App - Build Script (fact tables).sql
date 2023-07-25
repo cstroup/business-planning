@@ -1,4 +1,7 @@
-USE TEST
+--USE TEST
+--GO
+
+USE PLANNING_APP
 GO
 
 --[forecast_id]
@@ -98,8 +101,8 @@ CREATE INDEX idx_forecast_support_scalable_id ON [dbo].[forecast] ([support_scal
 
 
 
-DROP TABLE IF EXISTS [dbo].[forecast_line_item_v2];
-CREATE TABLE [dbo].[forecast_line_item_v2](
+DROP TABLE IF EXISTS [dbo].[forecast_line_item];
+CREATE TABLE [dbo].[forecast_line_item](
 	[forecast_line_item_id] bigint IDENTITY(1000,1) PRIMARY KEY,
 	[forecast_id] bigint NOT NULL,
 	[date_id] bigint NOT NULL,
@@ -121,8 +124,8 @@ CREATE TABLE [dbo].[forecast_line_item_v2](
 ) ON [PRIMARY]
 GO
 ;
-CREATE INDEX idx_forecast_line_item_forecast_id ON [dbo].[forecast_line_item_v2] ([forecast_id]);
-CREATE INDEX idx_forecast_line_item_date_id ON [dbo].[forecast_line_item_v2] ([date_id]);
+CREATE INDEX idx_forecast_line_item_forecast_id ON [dbo].[forecast_line_item] ([forecast_id]);
+CREATE INDEX idx_forecast_line_item_date_id ON [dbo].[forecast_line_item] ([date_id]);
 
 
 
